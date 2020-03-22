@@ -1,12 +1,16 @@
 """
 Prepare bids dataset from raw data.
 
+Mark flat segments and channels while copying. Flats are causing
+trouble during head position detection for some subjects and files.
+
 Note
 ----
 Some filenames were changed manually to simplify processing, e.g.
 cyrillic names for tables and subject names.
 
 mne.__version__ = 0.19.2
+At present mne-bids doesn't work for 0.20
 
 """
 import mne
@@ -18,6 +22,7 @@ from mne_bids import (
     write_raw_bids,
 )
 from mne.io import read_info
+from mne.preprocessing import mark_flat
 from config import RAW_DIR, BIDS_ROOT, ev_id
 from operator import itemgetter
 from datetime import datetime
@@ -72,6 +77,7 @@ def process_fif_files(files, subj_id):
         for i, f in enumerate(task_files):
             base = make_bids_basename(subj_id, task="questions", run=i + 1)
             raw = read_raw_fif(f)
+            mark_flat(raw, min_duration=0.1, picks="data", bad_percent=90)
             ev = mne.find_events(raw, shortest_event=1)
             write_raw_bids(
                 raw, base, BIDS_ROOT, ev, ev_id, overwrite=True, verbose=False
@@ -81,12 +87,14 @@ def process_fif_files(files, subj_id):
     if prac_file:
         base = make_bids_basename(subject=subj_id, task="practice")
         raw = read_raw_fif(prac_file)
+        mark_flat(raw, min_duration=0.1, picks="data", bad_percent=90)
         write_raw_bids(raw, base, BIDS_ROOT, overwrite=True, verbose=False)
 
     # process resting state file
     if rest_file:
         base = make_bids_basename(subject=subj_id, task="rest")
         raw = read_raw_fif(rest_file)
+        mark_flat(raw, min_duration=0.1, picks="data", bad_percent=90)
         write_raw_bids(raw, base, BIDS_ROOT, overwrite=True, verbose=False)
 
     # process empty room file
@@ -96,6 +104,7 @@ def process_fif_files(files, subj_id):
         ses_date = "%04d%02d%02d" % (d.year, d.month, d.day)
         base = make_bids_basename("emptyroom", task="noise", session=ses_date)
         raw = read_raw_fif(er_file)
+        mark_flat(raw, min_duration=0.1, picks="data", bad_percent=90)
         write_raw_bids(raw, base, BIDS_ROOT, overwrite=True, verbose=False)
 
 
@@ -146,6 +155,7 @@ def map_subjects_to_enum_id(subjs):
 if __name__ == "__main__":
     subjs = map_subjects_to_enum_id(RAW_DIR.glob("sub-*"))
     for s in subjs:
+        print(f"Processing {s[0].name}")
         convert_subj(*s)
 
     make_dataset_description(
