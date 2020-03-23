@@ -8,20 +8,32 @@ from mne import read_annotations, set_log_level
 set_log_level(verbose="ERROR")
 
 
+def dict_from_bids_fname(fname):
+    fname = fname[:-len("_meg.fif")]
+    bids_dict = {f.split("-")[0]: f.split("-")[1] for f in fname.split("_")}
+    return bids_dict
+
+
 def inspect_fif(f, bads, annotations):
     raw_check = read_raw_fif(str(f), preload=True)
     if bads:
         raw_check.info['bads'] = bads
     if annotations:
         raw_check.set_annotations(annotations)
-    filter_chpi(raw_check)
-    raw_check.plot(block=True, lowpass=50)
+    bids_dict = dict_from_bids_fname(f.name)
+    if bids_dict["sub"] != "emptyroom":
+        filter_chpi(raw_check)
+    raw_check.plot(block=True, lowpass=50, n_channels=50)
     return raw_check.info['bads'], raw_check.annotations
 
 
 def write_bads_info_and_annotations(subj, fif_file):
     dest_dir = BADS_DIR / subj.name
+    if subj.name == "sub-emptyroom":
+        bids_dict = dict_from_bids_fname(fif_file.name)
+        dest_dir = dest_dir / ("ses-" + bids_dict["ses"])
     dest_dir.mkdir(exist_ok=True)
+
     basename = fif_file.name[:-len("_meg.fif")]
 
     bads_fpath = dest_dir / (basename + "-bads.tsv")
@@ -48,7 +60,8 @@ def write_bads_info_and_annotations(subj, fif_file):
 
 
 if __name__ == "__main__":
-    subjs = BIDS_ROOT.glob("sub-[0-9][1-9]")
+    # subjs = BIDS_ROOT.glob("sub-[0-9][1-9]")
+    subjs = BIDS_ROOT.glob("sub-*")
     for s in subjs:
         fif_files = s.rglob("*_meg.fif")
         for f in fif_files:
