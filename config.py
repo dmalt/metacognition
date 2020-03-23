@@ -13,8 +13,13 @@ HP_DIR = DERIVATIVES_DIR / "01-head_positon"
 HP_DIR.mkdir(exist_ok=True)
 
 # create folder for head reports
+BADS_DIR = DERIVATIVES_DIR / "02-bads"
+BADS_DIR.mkdir(exist_ok=True)
+
+# create folder for head reports
 REPORTS_DIR = DERIVATIVES_DIR / "99-reports"
 REPORTS_DIR.mkdir(exist_ok=True)
+
 
 ev_id = {
     "question/second": 1,
