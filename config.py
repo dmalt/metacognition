@@ -13,7 +13,7 @@ HP_DIR = DERIVATIVES_DIR / "01-head_positon"
 HP_DIR.mkdir(exist_ok=True)
 
 # create folder for head reports
-BADS_DIR = DERIVATIVES_DIR / "02-bads"
+BADS_DIR = DERIVATIVES_DIR / "02-maxfilter_bads"
 BADS_DIR.mkdir(exist_ok=True)
 
 # create folder for head reports
