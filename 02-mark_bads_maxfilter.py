@@ -4,14 +4,9 @@ from config import BIDS_ROOT, BADS_DIR
 from mne.io import read_raw_fif
 from mne.chpi import filter_chpi
 from mne import read_annotations, set_log_level
+from utils import dict_from_bids_fname
 
 set_log_level(verbose="ERROR")
-
-
-def dict_from_bids_fname(fname):
-    fname = fname[:-len("_meg.fif")]
-    bids_dict = {f.split("-")[0]: f.split("-")[1] for f in fname.split("_")}
-    return bids_dict
 
 
 def inspect_fif(f, bads, annotations):
