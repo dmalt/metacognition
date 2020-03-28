@@ -83,7 +83,7 @@ def process_fif_files(files, subj_id):
             base = make_bids_basename(subj_id, task="questions", run=i + 1)
             raw = read_raw_fif(f)
             mark_flat(raw, min_duration=0.1, picks="data", bad_percent=90)
-            ev = mne.find_events(raw, shortest_event=1)
+            ev = mne.find_events(raw, min_duration=2 / raw.info["sfreq"])
             write_raw_bids(
                 raw, base, BIDS_ROOT, ev, ev_id, overwrite=True, verbose=False
             )
