@@ -14,7 +14,7 @@ output_log(__file__)
 def inspect_fif(f, bads, annotations):
     raw_check = read_raw_fif(str(f), preload=True)
     if bads:
-        raw_check.info['bads'] = bads
+        raw_check.info["bads"] = bads
     if annotations:
         raw_check.set_annotations(annotations)
     bids_fname = BidsFname(f.name)
@@ -36,7 +36,7 @@ def write_bads_info_and_annotations(subj, fif_file):
 
     bads_fpath = dest_dir / (bids_fname.base + "-bads.tsv")
     if bads_fpath.exists():
-        with open(bads_fpath, 'r') as f:
+        with open(bads_fpath, "r") as f:
             bads = f.readline().split("\t")
             print("Loading BADS from file:", bads)
     else:
@@ -51,7 +51,7 @@ def write_bads_info_and_annotations(subj, fif_file):
 
     bads, annotations = inspect_fif(fif_file, bads, annotations)
 
-    with open(bads_fpath, 'w') as f:
+    with open(bads_fpath, "w") as f:
         f.write("\t".join(bads))
 
     annotations.save(str(annotations_fpath))
