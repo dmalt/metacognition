@@ -4,6 +4,7 @@ from mne.io import read_raw_fif
 from mne.chpi import filter_chpi
 from mne import read_annotations, set_log_level
 
+from utils import BidsFname
 from utils import output_log
 from config import BIDS_ROOT, BADS_DIR
 
@@ -16,23 +17,24 @@ def inspect_fif(f, bads, annotations):
         raw_check.info['bads'] = bads
     if annotations:
         raw_check.set_annotations(annotations)
-    bids_dict = dict_from_bids_fname(f.name)
-    if bids_dict["sub"] != "emptyroom":
+    bids_fname = BidsFname(f.name)
+    if bids_fname["sub"] != "emptyroom":
         filter_chpi(raw_check)
     raw_check.plot(block=True, lowpass=50, n_channels=50)
-    return raw_check.info['bads'], raw_check.annotations
+    print(f"Channels marked bad: {raw_check.info['bads']}")
+    return raw_check.info["bads"], raw_check.annotations
 
 
 def write_bads_info_and_annotations(subj, fif_file):
     dest_dir = BADS_DIR / subj.name
+    bids_fname = BidsFname(fif_file.name)
     if subj.name == "sub-emptyroom":
-        bids_dict = dict_from_bids_fname(fif_file.name)
-        dest_dir = dest_dir / ("ses-" + bids_dict["ses"])
+        dest_dir = dest_dir / bids_fname.to_string("ses")
     dest_dir.mkdir(exist_ok=True)
+    if "part" in bids_fname:
+        bids_fname["part"] = None
 
-    basename = fif_file.name[:-len("_meg.fif")]
-
-    bads_fpath = dest_dir / (basename + "-bads.tsv")
+    bads_fpath = dest_dir / (bids_fname.base + "-bads.tsv")
     if bads_fpath.exists():
         with open(bads_fpath, 'r') as f:
             bads = f.readline().split("\t")
@@ -40,7 +42,7 @@ def write_bads_info_and_annotations(subj, fif_file):
     else:
         bads = None
 
-    annotations_fpath = dest_dir / (basename + "-annot.fif")
+    annotations_fpath = dest_dir / (bids_fname.base + "-annot.fif")
     if annotations_fpath.exists():
         print("Loading annotations from file.")
         annotations = read_annotations(str(annotations_fpath))

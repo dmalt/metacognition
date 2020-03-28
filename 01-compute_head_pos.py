@@ -18,6 +18,7 @@ from mne.io import read_raw_fif
 import mne
 
 from config import BIDS_ROOT, HP_DIR
+from utils import BidsFname
 from utils import output_log
 
 output_log(__file__)
@@ -29,10 +30,12 @@ def compute_head_position(f):
     return compute_head_pos(raw.info, chpi_locs)
 
 
-def compute_and_save_hp(f, dest):
-    head_pos = compute_head_position(f)
-    base = f.name[: -len("_meg.fif")]
-    base_path = str(dest / base)
+def compute_and_save_hp(fif_file, dest):
+    head_pos = compute_head_position(fif_file)
+    bids_fname = BidsFname(fif_file.name)
+    if "part" in bids_fname:
+        bids_fname["part"] = None
+    base_path = str(dest / bids_fname.base)
     write_head_pos(base_path + "_hp.pos", head_pos)
 
 
