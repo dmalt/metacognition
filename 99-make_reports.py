@@ -18,13 +18,6 @@ from mne.viz import plot_head_positions
 from config import BIDS_ROOT, REPORTS_DIR, HP_DIR, BADS_DIR, MAXFILTER_DIR
 from utils import dict_from_bids_fname
 
-# -------- fix report module so that parse_folder sees meg.fif files -------- #
-from report_patch import _get_toc_property, _iterate_files
-
-mne.report._get_toc_property = _get_toc_property
-mne.report._iterate_files = _iterate_files
-mne.report.VALID_EXTENSIONS.append("meg.fif")
-# --------------------------------------------------------------------------- #
 
 set_log_level(verbose="ERROR")
 
