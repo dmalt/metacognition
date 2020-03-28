@@ -44,7 +44,7 @@ def parse_fif_files(files, subj_id):
     er_files = []
     rest_files = []
     for f in files:
-        if f.name.lower().startswith("block"):
+        if re.match(r"block_[1-3]{1}\.fif", f.name.lower()):
             task_files.append(str(f))
         elif f.name.lower() == "empty_room.fif":
             er_files.append(str(f))

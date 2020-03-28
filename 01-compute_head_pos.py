@@ -43,7 +43,9 @@ if __name__ == "__main__":
         dest_dir = HP_DIR / subj.name
         dest_dir.mkdir(exist_ok=True)
 
-        fif_files = subj.rglob("*_meg.fif")
+        fif_files = filter(
+            lambda s: not s.match("*part-02*"), subj.rglob("*_meg.fif"),
+        )
         for f in fif_files:
             print(f"Processing {f}")
             compute_and_save_hp(f, dest_dir)

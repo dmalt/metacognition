@@ -56,10 +56,12 @@ def write_bads_info_and_annotations(subj, fif_file):
 
 
 if __name__ == "__main__":
-    # subjs = BIDS_ROOT.glob("sub-[0-9][1-9]")
-    subjs = BIDS_ROOT.glob("sub-*")
-    for s in subjs:
-        fif_files = s.rglob("*_meg.fif")
+    # subjs = BIDS_ROOT.glob("sub-*")
+    subjs = BIDS_ROOT.glob("sub-06")
+    for subj in subjs:
+        fif_files = filter(
+            lambda s: not s.match("*part-02*"), subj.rglob("*_meg.fif"),
+        )
         for f in fif_files:
             print(f"Processing {f}")
-            write_bads_info_and_annotations(s, f)
+            write_bads_info_and_annotations(subj, f)
