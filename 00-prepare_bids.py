@@ -34,7 +34,7 @@ from mne.preprocessing import mark_flat
 from config import RAW_DIR, BIDS_ROOT, ev_id
 from utils import output_log
 
-mne.set_log_level(verbose="ERROR")
+output_log(__file__)
 BIDS_ROOT = str(BIDS_ROOT)
 
 

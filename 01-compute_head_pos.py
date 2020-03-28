@@ -18,9 +18,9 @@ from mne.io import read_raw_fif
 import mne
 
 from config import BIDS_ROOT, HP_DIR
+from utils import output_log
 
-mne.set_log_level(verbose="ERROR")
-
+output_log(__file__)
 
 def compute_head_position(f):
     raw = read_raw_fif(str(f))

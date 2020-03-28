@@ -4,9 +4,10 @@ from mne.io import read_raw_fif
 from mne.chpi import filter_chpi
 from mne import read_annotations, set_log_level
 
+from utils import output_log
 from config import BIDS_ROOT, BADS_DIR
 
-set_log_level(verbose="ERROR")
+output_log(__file__)
 
 
 def inspect_fif(f, bads, annotations):
