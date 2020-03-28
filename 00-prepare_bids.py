@@ -13,6 +13,13 @@ mne.__version__ = 0.19.2
 At present mne-bids doesn't work for 0.20
 
 """
+import re
+from operator import itemgetter
+from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+
 import mne
 from mne.io import read_raw_fif
 from mne_bids import (
@@ -23,11 +30,9 @@ from mne_bids import (
 )
 from mne.io import read_info
 from mne.preprocessing import mark_flat
+
 from config import RAW_DIR, BIDS_ROOT, ev_id
-from operator import itemgetter
-from datetime import datetime
-import pandas as pd
-from pathlib import Path
+from utils import output_log
 
 mne.set_log_level(verbose="ERROR")
 BIDS_ROOT = str(BIDS_ROOT)

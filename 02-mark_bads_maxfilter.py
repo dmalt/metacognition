@@ -1,10 +1,10 @@
 """Mark bad channels and segments for maxfilter"""
 
-from config import BIDS_ROOT, BADS_DIR
 from mne.io import read_raw_fif
 from mne.chpi import filter_chpi
 from mne import read_annotations, set_log_level
-from utils import dict_from_bids_fname
+
+from config import BIDS_ROOT, BADS_DIR
 
 set_log_level(verbose="ERROR")
 
