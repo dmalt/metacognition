@@ -34,7 +34,14 @@ def process_fif(fif, subj):
         bids_fname = BidsFname(fif.name)
 
     bids_fname["proc"] = "filt"
-    raw.filter(l_freq=filter_freqs[0], h_freq=filter_freqs[1], n_jobs=1)
+    raw.apply_proj()
+    raw.filter(
+        l_freq=filter_freqs[0],
+        h_freq=filter_freqs[1],
+        n_jobs=1,
+        # skip_by_annotation="edge",  # do not skip bad_acq_skip for now
+        pad='symmetric',
+    )
     raw.resample(sfreq=resample_freq, n_jobs=1)
 
     dest_dir = FILTER_DIR / subj.name

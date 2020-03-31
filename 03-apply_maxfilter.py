@@ -79,6 +79,7 @@ def apply_maxfilter(fif_file, subj):
         # st_duration=20,
         # head_pos=head_pos,
         # destination=destination,
+        skip_by_annotation=[],
         coord_frame=coord_frame,
     )
 
@@ -87,7 +88,7 @@ def apply_maxfilter(fif_file, subj):
     bids_fname = BidsFname(fif_file.name)
     if "part" in bids_fname:
         bids_fname["part"] = None
-    bids_fname["proc"] = "tsss"
+    bids_fname["proc"] = "sss"
     savepath = str(dest_dir / str(bids_fname))
     raw_sss.save(savepath, overwrite=True)
 

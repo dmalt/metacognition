@@ -23,7 +23,7 @@ def compute_ica(fif_file):
 
     raw = read_raw_fif(str(fif_file), preload=True)
 
-    ica = ICA(n_components=0.99, random_state=random_state, max_iter=500)
+    ica = ICA(n_components=0.99, random_state=random_state, max_iter=1000)
     if bids_fname["task"] in ("rest", "practice"):
         decim = None
     else:
