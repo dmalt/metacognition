@@ -19,7 +19,7 @@ def inspect_fif(f, bads, annotations):
         raw_check.set_annotations(annotations)
     bids_fname = BidsFname(f.name)
     if bids_fname["sub"] != "emptyroom":
-        filter_chpi(raw_check)
+        filter_chpi(raw_check, t_window="auto")
     raw_check.plot(block=True, lowpass=100, n_channels=50)
     print(f"Channels marked bad: {raw_check.info['bads']}")
     return raw_check.info["bads"], raw_check.annotations
