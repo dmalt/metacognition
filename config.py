@@ -36,7 +36,7 @@ ICA_DIR = DERIVATIVES_DIR / "06-apply_ica"
 ICA_DIR.mkdir(exist_ok=True)
 
 # create folder for epoched data
-EPOCHS_DIR = DERIVATIVES_DIR / "06-make_epochs"
+EPOCHS_DIR = DERIVATIVES_DIR / "07-make_epochs"
 EPOCHS_DIR.mkdir(exist_ok=True)
 
 # create folder for reports
