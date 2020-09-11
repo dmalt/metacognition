@@ -16,7 +16,7 @@ from mne.chpi import read_head_pos, filter_chpi
 from mne.viz import plot_head_positions
 
 from config import BIDS_ROOT, REPORTS_DIR, HP_DIR, BADS_DIR, MAXFILTER_DIR
-from utils import dict_from_bids_fname
+from utils import BidsFname
 
 
 set_log_level(verbose="ERROR")
@@ -71,7 +71,7 @@ def prepare_raw_orig_data(fif_file, subj):
     bads_dir = BADS_DIR / subj.name
     if subj.name == "sub-emptyroom":
         print(fif_file)
-        bids_dict = dict_from_bids_fname(fif_file.name)
+        bids_dict = BidsFname(fif_file.name)
         bads_dir = bads_dir / ("ses-" + bids_dict["ses"])
     basename = fif_file.name[: -len("_meg.fif")]
     bads_fpath = bads_dir / (basename + "-bads.tsv")
