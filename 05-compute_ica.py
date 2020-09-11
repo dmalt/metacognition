@@ -3,13 +3,13 @@ from mne.io import read_raw_fif
 from mne import Report
 
 from config import FILTER_DIR, ICA_SOL_DIR, random_state
-from utils import BidsFname, output_log
+from utils import BidsFname, setup_logging
 
-output_log(__file__)
+logger = setup_logging(__file__)
 
 
 def generate_report(raw, ica, report_savepath):
-    print("Generatingg report")
+    logger.info("Generatingg report")
     report = Report(verbose=False)
 
     fig_topo = ica.plot_components(picks=range(ica.n_components_), show=False)
@@ -44,5 +44,5 @@ if __name__ == "__main__":
     for subj in subjs:
         fif_files = subj.rglob("*_meg.fif")
         for f in fif_files:
-            print(f"Processing {f.name}")
+            logger.info(f"Processing {f.name}")
             compute_ica(f)

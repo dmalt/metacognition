@@ -22,9 +22,9 @@ from config import (
     crosstalk_file,
     cal_file,
 )
-from utils import output_log, BidsFname
+from utils import setup_logging, BidsFname
 
-output_log(__file__)
+logger = setup_logging(__file__)
 
 
 def prepare_raw_and_hp(fif_file):
@@ -101,5 +101,5 @@ if __name__ == "__main__":
             lambda s: not s.match("*part-02*"), subj.rglob("*_meg.fif"),
         )
         for f in fif_files:
-            print(f"Processing {f.name}")
+            logger.info(f"Processing {f.name}")
             apply_maxfilter(f, subj)

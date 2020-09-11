@@ -7,10 +7,10 @@ import numpy as np
 from mne import Epochs, find_events, read_epochs
 from mne.io import read_raw_fif
 
-from config import BIDS_ROOT, ICA_DIR, EPOCHS_DIR, ev_id
-from utils import output_log, BidsFname
+from config import BIDS_ROOT, ICA_DIR, EPOCHS_DIR, EVENTS_ID
+from utils import setup_logging, BidsFname
 
-output_log(__file__)
+logger = setup_logging(__file__)
 
 confidence_trigger_scores = {
     "lowest": 10,
@@ -99,5 +99,5 @@ if __name__ == "__main__":
         key=attrgetter("name"),
     )
     for fif_file in fif_files:
-        print(f"Processing {fif_file.name}")
+        logger.info(f"Processing {fif_file.name}")
         make_epochs(fif_file)

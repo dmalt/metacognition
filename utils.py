@@ -2,9 +2,14 @@
 
 from pathlib import Path
 from collections import OrderedDict
+import re
+from datetime import datetime
+import logging
+from logging import getLogger, FileHandler, StreamHandler, Formatter
 
 from mne.viz import plot_topomap
-from mne import find_layout, set_log_file
+from mne import find_layout, set_log_file, sys_info
+from mne_bids import __version__ as mne_bids_version
 
 
 class BidsFname:
@@ -81,15 +86,34 @@ def plot_grads(data, info):
     plot_topomap(av_data, pos, names=av_names, show_names=True)
 
 
-def dict_from_bids_fname(fname):
-    bids_split = fname.split("_")
-    base = bids_split[:-1]
-    mod, ext = bids_split[-1].split(".")
-    bids_dict = OrderedDict((f.split("-")[0], f.split("-")[1]) for f in base)
-    return bids_dict
-
-
-def output_log(script_name):
+def setup_logging(script_name):
     """Save mne-python log to a file in logs folder"""
-    log_savepath = (Path("logs")) / (Path(script_name).stem + ".log")
-    set_log_file(log_savepath, overwrite=True)
+    log_basename = Path(script_name).stem
+    log_fname = log_basename + ".log"
+    log_savepath = (Path("logs")) / log_fname
+
+    logger = getLogger(log_basename)
+
+    stderr_handler = StreamHandler()
+    file_handler = FileHandler(log_savepath)
+
+    stderr_handler.setLevel(logging.INFO)
+    file_handler.setLevel(logging.INFO)
+    logger.setLevel(logging.INFO)
+
+    fmt = Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    stderr_handler.setFormatter(fmt)
+    file_handler.setFormatter(fmt)
+
+    logger.addHandler(stderr_handler)
+    logger.addHandler(file_handler)
+
+    with open(log_savepath, "a") as log_file:
+        log_file.write("=" * 80 + "\n")
+        log_file.write(str(datetime.now()).center(80, "=") + "\n")
+        log_file.write("=" * 80 + "\n")
+        sys_info(fid=log_file)
+        log_file.write("mne-bids:".ljust(15) + mne_bids_version + "\n")
+        log_file.write("-" * 80 + "\n")
+    set_log_file(log_savepath, overwrite=False)
+    return logger

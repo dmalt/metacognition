@@ -5,9 +5,9 @@ from mne.io import read_raw_fif
 from mne import concatenate_raws
 
 from config import MAXFILTER_DIR, FILTER_DIR
-from utils import output_log, BidsFname
+from utils import setup_logging, BidsFname
 
-output_log(__file__)
+logger = setup_logging(__file__)
 
 filter_freqs = (1, 100)
 resample_freq = 500
@@ -64,9 +64,9 @@ if __name__ == "__main__":
             all_files.append(task_files)
         for f in all_files:
             if isinstance(f, PurePath):
-                print(f"Processing {f.name}")
+                logger.info(f"Processing {f.name}")
             elif isinstance(f, list):
-                print("Processing")
+                logger.info("Processing")
                 for item in f:
-                    print(f"\t{item.name}")
+                    logger.info(f"\t{item.name}")
             process_fif(f, subj)

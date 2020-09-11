@@ -15,13 +15,13 @@ from mne.chpi import (
     write_head_pos,
 )
 from mne.io import read_raw_fif
-import mne
 
 from config import BIDS_ROOT, HP_DIR
 from utils import BidsFname
-from utils import output_log
+from utils import setup_logging
 
-output_log(__file__)
+logger = setup_logging(__file__)
+
 
 def compute_head_position(f):
     raw = read_raw_fif(str(f))
@@ -40,15 +40,19 @@ def compute_and_save_hp(fif_file, dest):
 
 
 if __name__ == "__main__":
-    subjs = list(BIDS_ROOT.glob("sub-[0-9][1-9]"))
+    # subjs = list(BIDS_ROOT.glob("sub-0[8-9]")) + list(
+    #     BIDS_ROOT.glob("sub-1[0-9]")
+    # )
+    subjs = list(BIDS_ROOT.glob("sub-10"))
     for subj in subjs:
         # create destination folder
         dest_dir = HP_DIR / subj.name
         dest_dir.mkdir(exist_ok=True)
 
         fif_files = filter(
-            lambda s: not s.match("*part-02*"), subj.rglob("*_meg.fif"),
+            lambda s: not s.match("*part-02*"),
+            subj.rglob("*task-rest_meg.fif"),
         )
         for f in fif_files:
-            print(f"Processing {f}")
+            logger.info(f"Processing {f}")
             compute_and_save_hp(f, dest_dir)
