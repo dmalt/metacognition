@@ -1,4 +1,4 @@
-"""Mark bad channels and segments for maxfilter"""
+"""Manually mark bad channels and segments for maxfilter"""
 
 from mne.io import read_raw_fif
 from mne.chpi import filter_chpi
