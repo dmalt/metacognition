@@ -1,5 +1,6 @@
 Dataset structure
 =================
+```
 .
 |-- meta_bids
 |   |-- code
@@ -55,3 +56,4 @@ Dataset structure
     |-- sub-andreev_konstantin
     |   `-- 200311
     `-- ...
+```
