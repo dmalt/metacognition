@@ -22,9 +22,9 @@ confidence_trigger_scores = {
 }
 
 ev_id_confidence = {}
-for trig, conf_lvl in product(ev_id, confidence_trigger_scores):
+for trig, conf_lvl in product(EVENTS_ID, confidence_trigger_scores):
     ev_id_confidence[trig + "/" + conf_lvl] = (
-        ev_id[trig] + confidence_trigger_scores[conf_lvl]
+        EVENTS_ID[trig] + confidence_trigger_scores[conf_lvl]
     )
 
 
@@ -32,12 +32,12 @@ def transform_events(events, subj_name):
 
     beh_fpath = next((BIDS_ROOT / subj_name / "beh").glob("*.tsv"))
     beh_df = pd.read_csv(beh_fpath, sep="\t")
-    assert len(events[events[:, 2] == ev_id["answer"]]) == len(beh_df)
-    assert len(events[events[:, 2] == ev_id["fixcross"]]) == len(beh_df)
+    assert len(events[events[:, 2] == EVENTS_ID["answer"]]) == len(beh_df)
+    assert len(events[events[:, 2] == EVENTS_ID["fixcross"]]) == len(beh_df)
 
     i_question = 0
     for i, ev in enumerate(events):
-        if i_question == 0 or ev[2] == ev_id["question/second"]:
+        if i_question == 0 or ev[2] == EVENTS_ID["question/second"]:
             try:
                 confidence = int(beh_df.loc[i_question, "оценка"])
             except ValueError:
@@ -56,7 +56,7 @@ def transform_events(events, subj_name):
                 confidence_lvl = "nan"
             else:
                 raise ValueError(f"Bad confidence: {confidence}")
-        if ev[2] == ev_id["confidence"]:
+        if ev[2] == EVENTS_ID["confidence"]:
             i_question += 1
         events[i, 2] += confidence_trigger_scores[confidence_lvl]
     return events

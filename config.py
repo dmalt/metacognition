@@ -46,7 +46,7 @@ REPORTS_DIR.mkdir(exist_ok=True)
 crosstalk_file = str(BIDS_ROOT / "SSS_data" / "ct_sparse.fif")
 cal_file = str(BIDS_ROOT / "SSS_data" / "sss_cal.dat")
 
-ev_id = {
+EVENTS_ID = {
     "question/second": 1,
     "question/third": 2,
     "fixcross": 3,
