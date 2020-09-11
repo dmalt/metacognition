@@ -50,7 +50,7 @@ def process_fif(fif, subj):
         dest_dir = dest_dir / bids_fname.to_string("ses")
     dest_dir.mkdir(exist_ok=True)
     dest_fpath = dest_dir / str(bids_fname)
-    raw.save(str(dest_fpath), overwrite=True)
+    raw.save(str(dest_fpath), overwrite=True, split_naming='bids')
 
 
 if __name__ == "__main__":

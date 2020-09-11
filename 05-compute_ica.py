@@ -21,6 +21,9 @@ def compute_ica(fif_file):
     bids_fname = BidsFname(fif_file.name)
     subj = bids_fname.to_string("sub")
 
+    if "split" in bids_fname:
+        bids_fname["split"] = None
+
     raw = read_raw_fif(str(fif_file), preload=True)
 
     ica = ICA(n_components=0.99, random_state=random_state, max_iter=1000)
