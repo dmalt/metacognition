@@ -14,58 +14,109 @@ from mne_bids import __version__ as mne_bids_version
 
 class BidsFname:
     def __init__(self, fname):
-        bids_split = fname.split("_")
-        base = bids_split[:-1]  # TODO: what if there's no suffix?
-        self.mod, self.ext = bids_split[-1].split(".")
+        match = re.match(r"([a-z0-9_-]+)_([a-z]+)\.([a-z]+)$", fname)
+        if match:
+            self.mod, self.ext = match.group(2), match.group(3)
+            base = match.group(1)
+        else:
+            base = fname
+            self.mod = None
+            self.ext = None
+
+        bids_split = base.split("_")
+
         self._bids_dict = OrderedDict(
-            (f.split("-")[0], f.split("-")[1]) for f in base
+            [
+                ("sub", None),
+                ("ses", None),
+                ("task", None),
+                ("acq", None),
+                ("run", None),
+                ("proc", None),
+                ("space", None),
+                ("recording", None),
+                ("part", None),
+                ("split", None),
+            ]
         )
+        for s in bids_split:
+            try:
+                key, val = s.split("-")
+            except ValueError:
+                raise ValueError(f"Bad filename format: {fname}")
+            if key in self._bids_dict:
+                self._bids_dict[key] = val
+            else:
+                raise KeyError(f"{key} is not allowed by BIDS format")
 
     def __repr__(self):
         return self.to_string()
 
     def __copy__(self):
-        return BidsFname(str(self))
+        new_obj = BidsFname(str(self))
+        if self.mod:
+            new_obj.mod = self.mod
+        if self.ext:
+            new_obj.ext = self.ext
+        return new_obj
 
     def __contains__(self, key):
-        return key in self._bids_dict
+        return key in self._bids_dict and self._bids_dict[key]
 
     def copy(self):
         return self.__copy__()
 
     def to_string(self, part=None):
-        if not part:
-            base_list = [self.to_string(k) for k in self._bids_dict]
-            suffix_list = [self.to_string("suffix")]
-            return "_".join(base_list + suffix_list)
+        if part is None:
+            base_str = self.to_string("base")
+            suffix_str = self.to_string("suffix")
+            if base_str and suffix_str:
+                return "_".join([base_str, suffix_str])
+            elif base_str:
+                return base_str
+            elif suffix_str:
+                return suffix_str
+            else:
+                return ""
         elif part in self._bids_dict:
-            return "-".join([part, self._bids_dict[part]])
+            if self._bids_dict[part] is not None:
+                return "-".join([part, self._bids_dict[part]])
+            else:
+                return ""
         elif part == "mod":
-            return self.mod
+            return self.mod if self.mod else ""
         elif part == "ext":
-            return self.ext
+            return self.ext if self.ext else ""
         elif part == "suffix":
-            return ".".join([self.mod, self.ext])
+            if self.mod and self.ext:
+                return ".".join([self.mod, self.ext])
+            else:
+                return ""
         elif part == "base":
-            base_list = [self.to_string(k) for k in self._bids_dict]
-            return "_".join(base_list)
+            return "_".join(
+                [
+                    self.to_string(k)
+                    for k in self._bids_dict
+                    if self.to_string(k)
+                ]
+            )
 
     def __getitem__(self, key):
         if key in self._bids_dict:
             return self._bids_dict[key]
         else:
-            raise AttributeError(f"Bad attribute {key}")
+            raise KeyError(f"Bad key {key}")
 
     def __setitem__(self, key, val):
         if not isinstance(val, str) and val is not None:
-            raise AttributeError(
+            raise ValueError(
                 "Can's set attribute."
-                f" Value type shoud be str or None; got {type(val)} insted"
+                f" Value type shoud be str or NoneType; got {type(val)} insted"
             )
-        if val is None and key in self._bids_dict:
-            del self._bids_dict[key]
-        else:
+        if key in self._bids_dict:
             self._bids_dict[key] = val
+        else:
+            raise KeyError(f"{key} is not allowed by BIDS format")
 
     @property
     def base(self):
