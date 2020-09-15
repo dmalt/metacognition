@@ -38,7 +38,7 @@ def write_bads_info_and_annotations(subj, fif_file):
     if bads_fpath.exists():
         with open(bads_fpath, "r") as f:
             bads = f.readline().split("\t")
-            logger.info("Loading BADS from file:", bads)
+            logger.info(f"Loading BADS from file: {bads}")
     else:
         bads = None
 
