@@ -1,6 +1,8 @@
 """
 Prepare bids dataset from raw data.
 
+Copy files from raw folder and store them in BIDS-organized folders.
+
 Mark flat segments and channels while copying. Flats are causing
 trouble during head position detection for some subjects and files.
 
