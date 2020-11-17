@@ -16,6 +16,7 @@ BIDS_ROOT = curdir.parent.parent
 
 # setup source data folder
 RAW_DIR = BIDS_ROOT.parent / "raw"
+BEH_RAW_DIR = RAW_DIR / "behavioral_data"
 
 # create folder for derivatives
 DERIVATIVES_DIR = BIDS_ROOT / "derivatives"
@@ -55,6 +56,7 @@ REPORTS_DIR.mkdir(exist_ok=True)
 
 crosstalk_file = str(BIDS_ROOT / "SSS_data" / "ct_sparse.fif")
 cal_file = str(BIDS_ROOT / "SSS_data" / "sss_cal.dat")
+subj_ids_file = BIDS_ROOT / "code" / "added_subjects.tsv"
 
 EVENTS_ID = {
     "question/second": 1,
