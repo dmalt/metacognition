@@ -1,15 +1,17 @@
 """Tools for dataset manipulation"""
-
+import os.path as op
 from pathlib import Path
 from collections import OrderedDict
 import re
 from datetime import datetime
 import logging
 from logging import getLogger, FileHandler, StreamHandler, Formatter
+from typing import Iterable
 
 from mne.viz import plot_topomap
 from mne import find_layout, set_log_file, sys_info
 from mne_bids import __version__ as mne_bids_version
+from mne.io import read_info
 
 
 class BidsFname:
@@ -144,20 +146,21 @@ def setup_logging(script_name):
     log_savepath = (Path("logs")) / log_fname
 
     logger = getLogger(log_basename)
-
-    stderr_handler = StreamHandler()
-    file_handler = FileHandler(log_savepath)
-
-    stderr_handler.setLevel(logging.INFO)
-    file_handler.setLevel(logging.INFO)
     logger.setLevel(logging.INFO)
 
-    fmt = Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-    stderr_handler.setFormatter(fmt)
-    file_handler.setFormatter(fmt)
+    if not logger.hasHandlers():
+        stderr_handler = StreamHandler()
+        file_handler = FileHandler(log_savepath)
 
-    logger.addHandler(stderr_handler)
-    logger.addHandler(file_handler)
+        stderr_handler.setLevel(logging.INFO)
+        file_handler.setLevel(logging.INFO)
+
+        fmt = Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+        stderr_handler.setFormatter(fmt)
+        file_handler.setFormatter(fmt)
+
+        logger.addHandler(stderr_handler)
+        logger.addHandler(file_handler)
 
     with open(log_savepath, "a") as log_file:
         log_file.write("=" * 80 + "\n")
@@ -168,3 +171,62 @@ def setup_logging(script_name):
         log_file.write("-" * 80 + "\n")
     set_log_file(log_savepath, overwrite=False)
     return logger
+
+
+class SubjectRenamer:
+    def __init__(self, ids_file: Path):
+        self.subj_ids_file = ids_file
+        self.subj_ids_map = OrderedDict()
+        if op.exists(self.subj_ids_file):
+            self._load()
+
+    def add(self, subj_paths: Iterable[Path]):
+        new_subj_ids_map = self._create_new_subject_ids(subj_paths)
+        self.subj_ids_map.update(new_subj_ids_map)
+
+    def dump(self):
+        with open(self.subj_ids_file, "w") as f:
+            for s in self.subj_ids_map:
+                f.write("\t".join((s, self.subj_ids_map[s])) + "\n")
+
+    def reverse(self):
+        return OrderedDict(
+            (self.subj_ids_map[k], k) for k in self.subj_ids_map
+        )
+
+    def _load(self):
+        with open(self.subj_ids_file, "r") as f:
+            for line in f:
+                subj_name, subj_id = line.rstrip().split("\t")
+                self.subj_ids_map[subj_name] = subj_id
+
+    def _create_new_subject_ids(self, subj_paths: Iterable[Path]):
+        """Make subj_ids by enumerating recordings in chronological order"""
+        if len(self.subj_ids_map):
+            last_subj_name = next(reversed(self.subj_ids_map))
+            processed_max_id = int(self.subj_ids_map[last_subj_name])
+        else:
+            processed_max_id = 0
+
+        subj_paths = self._sort_by_meas_date(subj_paths)
+
+        new_subj_ids_map = OrderedDict()
+        i_subj = 1
+        for s in subj_paths:
+            if s.match("emptyroom"):
+                continue
+            elif s.name in self.subj_ids_map:
+                subj_id = self.subj_ids_map[s.name]
+            else:
+                subj_id = f"{i_subj + processed_max_id:02}"
+                i_subj += 1
+            new_subj_ids_map[s.name] = subj_id
+        return new_subj_ids_map
+
+    def _sort_by_meas_date(self, subj_paths):
+        """Sort a list of paths to subject folders by measurement date"""
+        m_dates = []
+        for s in subj_paths:
+            info_src = str(next(s.rglob("*.fif")))
+            m_dates.append(read_info(info_src, verbose="ERROR")["meas_date"])
+        return [x for _, x in sorted(zip(m_dates, subj_paths))]
