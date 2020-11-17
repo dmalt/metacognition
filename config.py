@@ -1,5 +1,15 @@
 from pathlib import Path
 
+DATASET_NAME = ("metacognition",)
+AUTHORS = (
+    [
+        "Beatriz Martin Luengo",
+        "Maria Alekseeva",
+        "Dmitrii Altukhov",
+        "Yuri Shtyrov",
+    ],
+)
+
 # setup BIDS root folder
 curdir = Path(__file__)
 BIDS_ROOT = curdir.parent.parent
