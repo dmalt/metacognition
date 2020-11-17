@@ -1,13 +1,9 @@
 """
 Compute head postion for each file to make decision on movement compensation.
 
-Note
-----
-This script utilized new features added to MNE-python v.0.20.
-At the moment MNE v.0.20 is in development and latest MNE-BIDS isn't
-compatible with it.
-
 """
+from argparse import ArgumentParser
+
 from mne.chpi import (
     compute_chpi_amplitudes,
     compute_chpi_locs,
@@ -17,8 +13,7 @@ from mne.chpi import (
 from mne.io import read_raw_fif
 
 from config import BIDS_ROOT, HP_DIR
-from utils import BidsFname
-from utils import setup_logging
+from utils import BidsFname, setup_logging
 
 logger = setup_logging(__file__)
 
