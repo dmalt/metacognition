@@ -1,14 +1,23 @@
-from operator import attrgetter
+"""Create and manually mark bad epochs."""
+import sys
+from pathlib import Path
 from itertools import product
 
 import pandas as pd
 import numpy as np
 
-from mne import Epochs, find_events, read_epochs
+from mne import Epochs, find_events, read_annotations
 from mne.io import read_raw_fif
 
-from config import BIDS_ROOT, ICA_DIR, EPOCHS_DIR, EVENTS_ID
-from utils import setup_logging, BidsFname
+from config import (
+    BIDS_ROOT,
+    EPOCHS_DIR,
+    EVENTS_ID,
+    bp_ica,
+    bp_annot_final,
+    bp_epochs,
+)
+from utils import setup_logging, bids_from_path, parse_args, update_bps
 
 logger = setup_logging(__file__)
 
@@ -32,8 +41,8 @@ def transform_events(events, subj_name):
 
     beh_fpath = next((BIDS_ROOT / subj_name / "beh").glob("*.tsv"))
     beh_df = pd.read_csv(beh_fpath, sep="\t")
-    assert len(events[events[:, 2] == EVENTS_ID["answer"]]) == len(beh_df)
-    assert len(events[events[:, 2] == EVENTS_ID["fixcross"]]) == len(beh_df)
+    # assert len(events[events[:, 2] == EVENTS_ID["answer"]]) == len(beh_df)
+    # assert len(events[events[:, 2] == EVENTS_ID["fixcross"]]) == len(beh_df)
 
     i_question = 0
     for i, ev in enumerate(events):
@@ -62,42 +71,39 @@ def transform_events(events, subj_name):
     return events
 
 
-def make_epochs(fif_file):
-    bids_fname = BidsFname(fif_file.name)
-    subj_name = bids_fname.to_string("sub")
-    dist_dir = EPOCHS_DIR / subj_name
-    dist_dir.mkdir(exist_ok=True)
-    savepath = dist_dir / (bids_fname.base + "-epo.fif")
-    if savepath.is_file():
-        epochs = read_epochs(str(savepath))
-    else:
-        raw = read_raw_fif(str(fif_file))
-        if bids_fname["task"] == "rest":
-            pass
-        else:
-            events = find_events(raw, min_duration=2 / raw.info["sfreq"])
-            events = transform_events(events, subj_name)
-            epochs = Epochs(
-                raw,
-                events,
-                tmin=-1,
-                tmax=1,
-                baseline=None,
-                event_id=ev_id_confidence,
-                reject=None,
-                flat=None,
-                on_missing="ignore",
-            )
-    epochs.plot(block=True)
+def make_epochs(bp_src, bp_annot, bp_dest):
+    raw = read_raw_fif(bp_src.fpath)
+    if bp_annot.fpath.exists():
+        logger.info("Loading annotations from file.")
+        raw.set_annotations(read_annotations(bp_annot.fpath))
+    events = find_events(raw, min_duration=2 / raw.info["sfreq"])
+    events = transform_events(events, "sub-" + bp_dest.subject)
+    epochs = Epochs(
+        raw,
+        events,
+        tmin=-1,
+        tmax=1,
+        baseline=None,
+        event_id=ev_id_confidence,
+        reject=None,
+        flat=None,
+        reject_by_annotation=True,
+        on_missing="ignore",
+    )
 
-    epochs.save(str(savepath), overwrite=True)
+    epochs.save(bp_dest.fpath, overwrite=True)
 
 
 if __name__ == "__main__":
-    fif_files = sorted(
-        list(ICA_DIR.rglob("*task-questions*ica_meg.fif")),
-        key=attrgetter("name"),
+    args = parse_args(__doc__, args=sys.argv[1:], is_applied_to_er=True)
+    assert args.task not in ("rest", "noise")
+
+    src_bp_ica, src_bp_annot, bp_dest = update_bps(
+        [bp_ica, bp_annot_final, bp_epochs],
+        subject=args.subject,
+        task=args.task,
+        session=args.session,
     )
-    for fif_file in fif_files:
-        logger.info(f"Processing {fif_file.name}")
-        make_epochs(fif_file)
+    bp_dest.mkdir(exist_ok=True)
+
+    make_epochs(src_bp_ica, src_bp_annot, bp_dest)

@@ -1,17 +1,98 @@
 """Tools for dataset manipulation"""
-import os.path as op
+from argparse import ArgumentParser
 from pathlib import Path
 from collections import OrderedDict
+from functools import wraps
 import re
 from datetime import datetime
+from types import GeneratorType
+
+
 import logging
 from logging import getLogger, FileHandler, StreamHandler, Formatter
-from typing import Iterable
 
 from mne.viz import plot_topomap
 from mne import find_layout, set_log_file, sys_info
-from mne_bids import __version__ as mne_bids_version
-from mne.io import read_info
+from mne_bids import __version__ as mne_bids_version, BIDSPath
+
+from config import tasks, runs, subjects, er_sessions
+
+
+def bids_from_path(path: Path):
+    bids_path_kwargs = {}
+
+    bids_names = OrderedDict(
+        [
+            ("sub", "subject"),
+            ("ses", "session"),
+            ("task", "task"),
+            ("acq", "acquisition"),
+            ("run", "run"),
+            ("proc", "processing"),
+            ("rec", "recording"),
+            ("space", "space"),
+            ("split", "split"),
+        ]
+    )
+
+    dir_ses = None
+    if path.match("*/sub-*/ses-*/*/*.*"):
+        bids_path_kwargs["datatype"] = path.parent.name
+        dir_subj = path.parent.parent.parent.name.split("-")[1]
+        dir_ses = path.parent.parent.name.split("-")[1]
+        bids_path_kwargs["root"] = path.parent.parent.parent.parent
+    elif path.match("*/sub-*/ses-*/*.*"):
+        dir_ses = path.parent.name.split("-")[1]
+        dir_subj = path.parent.parent.name.split("-")[1]
+        bids_path_kwargs["root"] = path.parent.parent.parent
+    elif path.match("*/sub-*/*/*.*"):
+        bids_path_kwargs["datatype"] = path.parent.name
+        dir_subj = path.parent.parent.name.split("-")[1]
+        bids_path_kwargs["root"] = path.parent.parent.parent
+    elif path.match("*/sub-*/*.*"):
+        dir_subj = path.parent.name.split("-")[1]
+        bids_path_kwargs["root"] = path.parent.parent
+
+    match = re.match(r"([a-z0-9_-]+)_([a-z]+)\.([a-z]+)$", path.name)
+    if match:
+        bids_path_kwargs["suffix"], bids_path_kwargs["extension"] = (
+            match.group(2),
+            match.group(3),
+        )
+        base = match.group(1)
+    else:
+        base = path.name
+
+    bids_split = base.split("_")
+
+    # iterator fuss is to ensure the correct order in fname
+    dict_iterator = iter(bids_names)
+    for s in bids_split:
+        try:
+            key, val = s.split("-")
+        except ValueError:
+            raise ValueError(f"Bad filename format: {path}")
+
+        # fast-forward iterator
+        for allowed_key in dict_iterator:
+            if allowed_key == key:
+                break
+        else:
+            raise ValueError(f"Bad filename format: {path}")
+
+        if key == "sub":
+            assert dir_subj == val, (
+                "Subject id in filename and containing folder mismatch:"
+                f" {val} != {dir_subj}"
+            )
+        if key == "ses" and dir_ses is not None:
+            assert dir_ses == val, (
+                "Session in filename and containing folder mismatch:"
+                f" {val} != {dir_ses}"
+            )
+
+        bids_path_kwargs[bids_names[key]] = val
+    return BIDSPath(**bids_path_kwargs)
 
 
 class BidsFname:
@@ -37,7 +118,6 @@ class BidsFname:
                 ("proc", None),
                 ("space", None),
                 ("recording", None),
-                ("part", None),
                 ("split", None),
             ]
         )
@@ -152,7 +232,7 @@ def setup_logging(script_name):
         stderr_handler = StreamHandler()
         file_handler = FileHandler(log_savepath)
 
-        stderr_handler.setLevel(logging.INFO)
+        stderr_handler.setLevel(logging.WARNING)
         file_handler.setLevel(logging.INFO)
 
         fmt = Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -173,60 +253,61 @@ def setup_logging(script_name):
     return logger
 
 
-class SubjectRenamer:
-    def __init__(self, ids_file: Path):
-        self.subj_ids_file = ids_file
-        self.subj_ids_map = OrderedDict()
-        if op.exists(self.subj_ids_file):
-            self._load()
+def update_bps(bp_templates, **kwargs):
+    return [bp.copy().update(**kwargs) for bp in bp_templates]
 
-    def add(self, subj_paths: Iterable[Path]):
-        new_subj_ids_map = self._create_new_subject_ids(subj_paths)
-        self.subj_ids_map.update(new_subj_ids_map)
 
-    def dump(self):
-        with open(self.subj_ids_file, "w") as f:
-            for s in self.subj_ids_map:
-                f.write("\t".join((s, self.subj_ids_map[s])) + "\n")
-
-    def reverse(self):
-        return OrderedDict(
-            (self.subj_ids_map[k], k) for k in self.subj_ids_map
+def parse_args(description, args, is_applied_to_er=False):
+    parser = ArgumentParser(description=description)
+    if is_applied_to_er:
+        subjects.append("emptyroom")
+        tasks.append("noise")
+        parser.add_argument(
+            "--session", "-s", default="None", choices=er_sessions + ["None"]
         )
 
-    def _load(self):
-        with open(self.subj_ids_file, "r") as f:
-            for line in f:
-                subj_name, subj_id = line.rstrip().split("\t")
-                self.subj_ids_map[subj_name] = subj_id
+    parser.add_argument("subject", choices=subjects)
+    parser.add_argument("task", choices=tasks)
+    parser.add_argument("--run", "-r", choices=runs + ["None"], default="None")
+    args = parser.parse_args(args)
 
-    def _create_new_subject_ids(self, subj_paths: Iterable[Path]):
-        """Make subj_ids by enumerating recordings in chronological order"""
-        if len(self.subj_ids_map):
-            last_subj_name = next(reversed(self.subj_ids_map))
-            processed_max_id = int(self.subj_ids_map[last_subj_name])
+    if is_applied_to_er:
+        if args.session == "None":
+            args.session = None
+        if args.subject == "emptyroom":
+            assert args.task == "noise"
+            assert args.session in er_sessions
         else:
-            processed_max_id = 0
+            assert args.task != "noise"
+            assert args.session is None
 
-        subj_paths = self._sort_by_meas_date(subj_paths)
+    if args.run == "None":
+        args.run = None
+    else:
+        args.run = int(args.run)
+    return args
 
-        new_subj_ids_map = OrderedDict()
-        i_subj = 1
-        for s in subj_paths:
-            if s.match("emptyroom"):
-                continue
-            elif s.name in self.subj_ids_map:
-                subj_id = self.subj_ids_map[s.name]
-            else:
-                subj_id = f"{i_subj + processed_max_id:02}"
-                i_subj += 1
-            new_subj_ids_map[s.name] = subj_id
-        return new_subj_ids_map
 
-    def _sort_by_meas_date(self, subj_paths):
-        """Sort a list of paths to subject folders by measurement date"""
-        m_dates = []
-        for s in subj_paths:
-            info_src = str(next(s.rglob("*.fif")))
-            m_dates.append(read_info(info_src, verbose="ERROR")["meas_date"])
-        return [x for _, x in sorted(zip(m_dates, subj_paths))]
+def disable(func, *pargs, **kwargs):
+    @wraps(func)
+    def inner(*pargs, **kwargs):
+        res = func(*pargs, **kwargs)
+        d = {"actions": [], "file_dep": [], "targets": [], "doc": "DISABLED"}
+        if isinstance(res, GeneratorType):
+            for r in res:
+                r.update(d)
+                yield r
+        else:
+            res.update(d)
+            return res
+
+    inner.__doc__ = (
+        "DISABLED! " + inner.__doc__ if inner.__doc__ else "DISABLED!"
+    )
+    return inner
+
+
+if __name__ == "__main__":
+    path = Path("sub-test_task-test_meg.fif")
+    p = bids_from_path(path)
+    print(p)

@@ -1,20 +1,26 @@
-from operator import attrgetter
-from pathlib import PurePath
+"""
+Filter and resample data. For task data concatenate runs.
+
+Intended to be used with maxfiltered data but this is not obligatory.
+
+"""
+import sys
+from typing import List
+import warnings
 
 from mne.io import read_raw_fif
 from mne import concatenate_raws
+from mne_bids import BIDSPath
 
-from config import MAXFILTER_DIR, FILTER_DIR
-from utils import setup_logging, BidsFname
+from config import concat_config, bp_maxfilt, bp_filt, subj_runs
+from utils import setup_logging, update_bps, parse_args
 
 logger = setup_logging(__file__)
-
-filter_freqs = (1, 100)
-resample_freq = 500
+warnings.simplefilter("ignore", RuntimeWarning)
 
 
-def concat_runs(fifs):
-    raws = [read_raw_fif(str(f), preload=True) for f in fifs]
+def concat_runs(bps: List[BIDSPath]):
+    raws = [read_raw_fif(str(f.fpath), preload=True) for f in bps]
     common_ch_names = set.intersection(*[set(r.ch_names) for r in raws])
     for raw in raws:
         raw.pick_channels(list(common_ch_names))
@@ -24,49 +30,42 @@ def concat_runs(fifs):
         return raws[0]
 
 
-def process_fif(fif, subj):
-    if isinstance(fif, list):
-        raw = concat_runs(fif)
-        bids_fname = BidsFname(fif[0].name)
-        bids_fname["run"] = None
-    elif isinstance(fif, PurePath):
-        raw = read_raw_fif(str(fif), preload=True)
-        bids_fname = BidsFname(fif.name)
+def process_fif(bp_src, bp_dest):
+    if bp_dest.task == "questions":
+        raw = concat_runs(bp_src)
+    else:
+        raw = read_raw_fif(bp_src.fpath, preload=True)
 
-    bids_fname["proc"] = "filt"
     raw.apply_proj()
     raw.filter(
-        l_freq=filter_freqs[0],
-        h_freq=filter_freqs[1],
+        l_freq=concat_config["filter_freqs"][0],
+        h_freq=concat_config["filter_freqs"][1],
         n_jobs=1,
         # skip_by_annotation="edge",  # do not skip bad_acq_skip for now
-        pad='symmetric',
+        pad=concat_config["pad"],
     )
-    raw.resample(sfreq=resample_freq, n_jobs=1)
+    raw.resample(sfreq=concat_config["resamp_freq"], n_jobs=1)
 
-    dest_dir = FILTER_DIR / subj.name
-    if subj.name == "sub-emptyroom":
-        dest_dir.mkdir(exist_ok=True)
-        dest_dir = dest_dir / bids_fname.to_string("ses")
-    dest_dir.mkdir(exist_ok=True)
-    dest_fpath = dest_dir / str(bids_fname)
-    raw.save(str(dest_fpath), overwrite=True, split_naming='bids')
+    raw.save(bp_dest.fpath, overwrite=True)
 
 
 if __name__ == "__main__":
-    subjs = MAXFILTER_DIR.glob("sub-*")
-    for subj in subjs:
-        task_files = sorted(
-            subj.rglob("*run-0[1-9]*_meg.fif"), key=attrgetter("name")
-        )
-        all_files = [f for f in subj.rglob("*_meg.fif") if f not in task_files]
-        if task_files:
-            all_files.append(task_files)
-        for f in all_files:
-            if isinstance(f, PurePath):
-                logger.info(f"Processing {f.name}")
-            elif isinstance(f, list):
-                logger.info("Processing")
-                for item in f:
-                    logger.info(f"\t{item.name}")
-            process_fif(f, subj)
+
+    args = parse_args(__doc__, args=sys.argv[1:], is_applied_to_er=True)
+    run = 1 if args.task == "questions" else None
+
+    bp_src, bp_dest = update_bps(
+        [bp_maxfilt, bp_filt],
+        subject=args.subject,
+        task=args.task,
+        run=run,
+        session=args.session,
+    )
+    bp_dest.update(run=None)  # since we concatenate all 3 runs
+    if args.task == "questions":
+        bp_src = [
+            bp_src.copy().update(run=int(r)) for r in subj_runs[args.subject]
+        ]
+
+    bp_dest.mkdir()
+    process_fif(bp_src, bp_dest)
