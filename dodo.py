@@ -1,3 +1,6 @@
+import json
+from warnings import catch_warnings, simplefilter
+
 from doit.tools import config_changed
 from mne_bids import make_dataset_description
 from config import (
@@ -6,6 +9,7 @@ from config import (
     AUTHORS,
     subjects,
     bp_root,
+    bp_root_json,
     bp_headpos,
     bp_bads,
     bp_annot,
@@ -15,20 +19,29 @@ from config import (
     bp_ica,
     bp_ica_bads,
     bp_annot_final,
+    bp_beh,
     bp_epochs,
-    iter_files,
+    bp_anat,
+    bp_trans,
+    bp_fwd,
+    bp_inv,
+    bp_tfr,
     maxfilt_config,
     concat_config,
     ica_config,
+    epochs_config,
     SUBJECTS_DIR,
-    COREG_DIR,
-    bp_anat,
+    SOURCES_DIR,
     fsf_config,
     fwd_config,
-    fwd_path,
+    tfr_config,
+    target_bands,
+    bp_tfr_av
 )
 
-from utils import update_bps, disable
+from dataset_specific_utils import iter_files
+
+from utils import disable
 
 # DOIT_CONFIG = {
 #     "default_tasks": [
@@ -60,17 +73,31 @@ def task_make_dataset_description():
     }
 
 
+def task_add_associated_emptyrooms():
+    """Add emptyroom path to sidecar json"""
+    script = "add_associated_emptyroom.py"
+    for subj, task, run, _ in iter_files(subjects):
+        raw = bp_root.fpath(subject=subj, task=task, run=run, session=None)
+        json = bp_root_json.fpath(subject=subj, task=task, run=run)
+        yield dict(
+            name=raw.name,
+            file_dep=[raw],
+            actions=[f"python {script} {subj} {task} -r {run}"],
+            targets=[json],
+        )
+
+
 def task_compute_head_position():
     """Compute head position for maxfilter"""
+    script = "01-compute_head_pos.py"
     for subj, task, run, ses in iter_files(subjects):
-        src_bp, dest_bp = update_bps(
-            [bp_root, bp_headpos], subject=subj, task=task, run=run
-        )
+        raw = bp_root.fpath(subject=subj, task=task, run=run, session=ses)
+        hp = bp_headpos.fpath(subject=subj, task=task, run=run)
         yield dict(
-            name=src_bp.basename,
-            file_dep=[src_bp.fpath],
-            actions=[f"python 01-compute_head_pos.py {subj} {task} -r {run}"],
-            targets=[dest_bp.fpath],
+            name=raw.name,
+            file_dep=[raw],
+            actions=[f"python {script} {subj} {task} -r {run}"],
+            targets=[hp],
         )
 
 
@@ -79,18 +106,14 @@ def task_mark_bads_maxfilter():
     """Manually mark bad channels and segments and for maxfilter"""
     script = "02-mark_bads_maxfilter.py"
     for subj, task, run, ses in iter_files(["emptyroom"] + subjects):
-        src_bp, dest_bp_bads, dest_bp_annot = update_bps(
-            [bp_root, bp_bads, bp_annot],
-            subject=subj,
-            session=ses,
-            task=task,
-            run=run,
-        )
+        raw = bp_root.fpath(subject=subj, task=task, run=run, session=ses)
+        bads = bp_bads.fpath(subject=subj, task=task, run=run, session=ses)
+        annot = bp_annot.fpath(subject=subj, task=task, run=run, session=ses)
         yield dict(
-            name=src_bp.basename,
-            file_dep=[src_bp.fpath],
+            name=raw.name,
+            file_dep=[raw],
             actions=[f"python {script} {subj} {task} -r {run} -s {ses}"],
-            targets=[dest_bp_bads.fpath, dest_bp_annot.fpath],
+            targets=[bads, annot],
         )
 
 
@@ -98,29 +121,20 @@ def task_apply_maxfilter():
     """Apply maxfilter to raw data; interpolate bad channels in process"""
     script = "03-apply_maxfilter.py"
     for subj, task, run, ses in iter_files(["emptyroom"] + subjects):
-        (
-            src_bp,
-            src_bp_bads,
-            src_bp_annot,
-            src_bp_hp,
-            dest_bp_maxfilt,
-        ) = update_bps(
-            [bp_root, bp_bads, bp_annot, bp_headpos, bp_maxfilt],
-            subject=subj,
-            session=ses,
-            task=task,
-            run=run,
+        raw = bp_root.fpath(subject=subj, task=task, run=run, session=ses)
+        bads = bp_bads.fpath(subject=subj, task=task, run=run, session=ses)
+        annot = bp_annot.fpath(subject=subj, task=task, run=run, session=ses)
+        maxfilt = bp_maxfilt.fpath(
+            subject=subj, task=task, run=run, session=ses
         )
-        aux_deps = [src_bp_bads.fpath, src_bp_annot.fpath]
-        if subj != "emptyroom":
-            aux_deps.append(src_bp_hp.fpath)
+
         yield dict(
-            name=src_bp.basename,
+            name=raw.name,
             uptodate=[config_changed(maxfilt_config)],
             clean=True,
-            file_dep=[src_bp.fpath] + aux_deps,
+            file_dep=[raw, bads, annot],
             actions=[f"python {script} {subj} {task} -r {run} -s {ses}"],
-            targets=[dest_bp_maxfilt.fpath],
+            targets=[maxfilt],
         )
 
 
@@ -129,25 +143,22 @@ def task_concat_filter_resample():
     """Concatenate runs, bandpass-filter and downsample data"""
     script = "04-concat_filter_resample.py"
     for subj, task, runs, ses in iter_files(["emptyroom"] + subjects, "joint"):
-        bp_src, bp_dest = update_bps(
-            [bp_maxfilt, bp_filt],
-            subject=subj,
-            task=task,
-            run=None,
-            session=ses,
-        )
-        bp_dest.update(run=None)
-        name = bp_src.basename
+
+        bp_maxf_subj = bp_maxfilt.update(subject=subj, task=task, session=ses)
+        filt = bp_filt.fpath(subject=subj, task=task, session=ses)
+
         if task == "questions":
-            bp_src = [bp_src.copy().update(run=int(r)) for r in runs]
+            maxfilt = [bp_maxf_subj.fpath(run=r) for r in runs]
         else:
-            bp_src = [bp_src]
+            maxfilt = [bp_maxf_subj.fpath(run=None)]
+        name = maxfilt[0].name
+
         yield dict(
             name=name,
             uptodate=[config_changed(concat_config)],
-            file_dep=[b.fpath for b in bp_src],
+            file_dep=maxfilt,
             actions=[f"python {script} {subj} {task} -s {ses}"],
-            targets=[bp_dest.fpath],
+            targets=[filt],
             clean=True,
         )
 
@@ -155,38 +166,33 @@ def task_concat_filter_resample():
 def task_compute_ica():
     """Compute ICA solution for filtered and resampled data. Skip emptyroom."""
     script = "05-compute_ica.py"
-    for subj, task, ses in iter_files(subjects, None):
-        bp_src, bp_dest = update_bps(
-            [bp_filt, bp_ica_sol],
-            subject=subj,
-            task=task,
-            session=ses,
-        )
+    for subj, task, _ in iter_files(subjects, None):
+        filt = bp_filt.fpath(subject=subj, task=task, session=None)
+        ica_sol = bp_ica_sol.fpath(subject=subj, task=task)
+
         yield dict(
-            name=bp_src.basename,
+            name=filt.name,
             uptodate=[config_changed(ica_config)],
-            file_dep=[bp_src.fpath],
-            actions=[f"python {script} {subj} {task} -s {ses}"],
-            targets=[bp_dest.fpath],
+            file_dep=[filt],
+            actions=[f"python {script} {subj} {task}"],
+            targets=[ica_sol],
         )
 
 
-@disable
+# @disable
 def task_inspect_ica():
     """Remove artifacts with precomputed ICA solution."""
     script = "06-inspect_ica.py"
     for subj, task, ses in iter_files(subjects, None):
-        bp_src_filt, bp_src_ica_sol, bp_dest = update_bps(
-            [bp_filt, bp_ica_sol, bp_ica_bads],
-            subject=subj,
-            task=task,
-            session=ses,
-        )
+        filt = bp_filt.fpath(subject=subj, task=task, session=None)
+        ica_sol = bp_ica_sol.fpath(subject=subj, task=task)
+        ica_bads = bp_ica_bads.fpath(subject=subj, task=task)
+
         yield dict(
-            name=bp_src_filt.basename,
-            file_dep=[bp_src_filt.fpath, bp_src_ica_sol.fpath],
-            actions=[f"python {script} {subj} {task} -s {ses}"],
-            targets=[bp_dest.fpath],
+            name=filt.name,
+            file_dep=[filt, ica_sol],
+            actions=[f"python {script} {subj} {task}"],
+            targets=[ica_bads],
         )
 
 
@@ -197,17 +203,16 @@ def task_apply_ica():
     """
     script = "07-apply_ica.py"
     for subj, task, ses in iter_files(subjects, None):
-        bp_src_filt, bp_src_ica_sol, bp_dest = update_bps(
-            [bp_filt, bp_ica_sol, bp_ica],
-            subject=subj,
-            task=task,
-            session=ses,
-        )
+        filt = bp_filt.fpath(subject=subj, task=task, session=None)
+        ica_sol = bp_ica_sol.fpath(subject=subj, task=task)
+        ica_bads = bp_ica_bads.fpath(subject=subj, task=task)
+        cleaned_fif = bp_ica.fpath(subject=subj, task=task)
+
         yield dict(
-            name=bp_src_filt.basename,
-            file_dep=[bp_src_filt.fpath, bp_src_ica_sol.fpath],
-            actions=[f"python {script} {subj} {task} -s {ses}"],
-            targets=[bp_dest.fpath],
+            name=filt.name,
+            file_dep=[filt, ica_sol, ica_bads],
+            actions=[f"python {script} {subj} {task}"],
+            targets=[cleaned_fif],
             clean=True,
         )
 
@@ -216,17 +221,13 @@ def task_mark_bad_segments():
     """Manually mark bad segments after ICA"""
     script = "08-mark_bad_segments.py"
     for subj, task, ses in iter_files(subjects, None):
-        src_bp, dest_bp_annot = update_bps(
-            [bp_ica, bp_annot_final],
-            subject=subj,
-            session=ses,
-            task=task,
-        )
+        cleaned_fif = bp_ica.fpath(subject=subj, task=task)
+        annot = bp_annot_final.fpath(subject=subj, task=task)
         yield dict(
-            name=src_bp.basename,
-            file_dep=[src_bp.fpath],
-            actions=[f"python {script} {subj} {task} -s {ses}"],
-            targets=[dest_bp_annot.fpath],
+            name=cleaned_fif.name,
+            file_dep=[cleaned_fif],
+            actions=[f"python {script} {subj} {task}"],
+            targets=[annot],
         )
 
 
@@ -236,17 +237,16 @@ def task_make_epochs():
     for subj, task, ses in iter_files(subjects, None):
         if task in ("rest", "noise", "practice"):
             continue
-        src_bp_ica, src_bp_annot, bp_dest = update_bps(
-            [bp_ica, bp_annot_final, bp_epochs],
-            subject=subj,
-            task=task,
-            session=ses,
-        )
+        cleaned_fif = bp_ica.fpath(subject=subj, task=task)
+        annot = bp_annot_final.fpath(subject=subj, task=task)
+        beh = bp_beh.fpath(subject=subj)
+        epochs = bp_epochs.fpath(subject=subj)
         yield dict(
-            name=src_bp_ica.basename,
-            file_dep=[src_bp_ica.fpath, src_bp_annot.fpath],
-            actions=[f"python {script} {subj} {task} -s {ses}"],
-            targets=[bp_dest.fpath],
+            name=cleaned_fif.name,
+            uptodate=[config_changed(epochs_config)],
+            file_dep=[cleaned_fif, annot, beh],
+            actions=[f"python {script} {subj}"],
+            targets=[epochs],
             clean=True,
         )
 
@@ -254,12 +254,12 @@ def task_make_epochs():
 @disable
 def task_freesurfer():
     for subj in subjects:
-        bp_anat.update(subject=subj)
+        anat = bp_anat.fpath(subject=subj)
         yield dict(
             name=f"sub-{subj}",
-            file_dep=[bp_anat.fpath],
+            file_dep=[bp_anat],
             actions=[
-                f"recon-all -i {bp_anat.fpath} -s sub-{subj} -all -sd"
+                f"recon-all -i {anat} -s sub-{subj} -all -sd"
                 f" {SUBJECTS_DIR} -parallel -openmp {fsf_config['openmp']}"
             ],
             targets=[SUBJECTS_DIR / f"sub-{subj}"],
@@ -311,26 +311,102 @@ def task_coregister():
                 prefix / f"sub-{subj}-head-medium.fif",
                 prefix / f"sub-{subj}-head-sparse.fif",
             ],
-            targets=[COREG_DIR / f"sub-{subj}-trans.fif"],
+            targets=[bp_trans.fpath(subject=subj)],
             actions=[f"python 10-coregister.py {subj}"],
         )
 
 
 def task_compute_forward():
+    """Compute forward solution"""
     for subj in subjects:
         subj_bids = f"sub-{subj}"
         yield dict(
             name=subj_bids,
             uptodate=[config_changed(fwd_config)],
             file_dep=[
+                bp_trans.fpath(subject=subj),
                 SUBJECTS_DIR / subj_bids / "bem" / f"{subj_bids}-head.fif",
                 SUBJECTS_DIR / subj_bids / "bem" / "outer_skin.surf",
                 SUBJECTS_DIR / subj_bids / "bem" / "inner_skull.surf",
                 SUBJECTS_DIR / subj_bids / "bem" / "outer_skull.surf",
                 SUBJECTS_DIR / subj_bids / "bem" / "brain.surf",
             ],
-            targets=[fwd_path.format(subject=subj)],
+            targets=[bp_fwd.fpath(subject=subj)],
             actions=[f"python 11-compute_forward.py {subj}"],
+        )
+
+
+def task_compute_inverse():
+    """Compute inverse solution"""
+    script = "12-compute_inverse.py"
+    for subj in subjects:
+        subj_bids = f"sub-{subj}"
+        with catch_warnings():
+            simplefilter("ignore")
+            json_path = bp_root_json.fpath(subject=subj, task="rest", run=None)
+            with open(json_path, "r") as f:
+                er_relpath = json.load(f)["AssociatedEmptyRoom"]
+            er_path = BIDS_ROOT / er_relpath
+        yield dict(
+            name=subj_bids,
+            file_dep=[bp_fwd.fpath(subject=subj), er_path],
+            targets=[bp_inv.fpath(subject=subj)],
+            actions=[f"python {script} {subj}"],
+        )
+
+
+def task_compute_sources():
+    """Project epochs to source space"""
+    script = "13-compute_sources.py"
+    for subj in subjects:
+        subj_bids = f"sub-{subj}"
+        fwd_path = bp_fwd.fpath(subject=subj)
+        inv_path = bp_inv.fpath(subject=subj)
+        epochs_path = bp_epochs.fpath(subject=subj)
+
+        yield dict(
+            name=subj_bids,
+            file_dep=[fwd_path, inv_path, epochs_path],
+            targets=[SOURCES_DIR / subj_bids],
+            actions=[f"python {script} {subj}"],
+            clean=True,
+        )
+
+
+def task_compute_tfr_epochs():
+    """Compute time-frequency for epochs"""
+    script = "15-compute_tfr_epochs.py"
+    for subj in subjects:
+        subj_bids = f"sub-{subj}"
+        epochs_path = bp_epochs.fpath(subject=subj)
+        tfr_path = bp_tfr.fpath(subject=subj)
+
+        yield dict(
+            name=subj_bids,
+            uptodate=[config_changed(tfr_config)],
+            file_dep=[epochs_path],
+            targets=[tfr_path],
+            actions=[f"python {script} {subj}"],
+            clean=True,
+        )
+
+
+def task_average_tfr():
+    """Compute inverse solution"""
+    script = "16-average_tfr.py"
+    for subj in subjects:
+        subj_bids = f"sub-{subj}"
+        tfr_path = bp_tfr.fpath(subject=subj)
+        av_tfr_paths = [
+            bp_tfr_av.fpath(subject=subj, acquisition=b) for b in target_bands
+        ]
+
+        yield dict(
+            name=subj_bids,
+            file_dep=[tfr_path],
+            targets=av_tfr_paths,
+            actions=[f"python {script} {subj}"],
+            clean=True,
         )
 
 

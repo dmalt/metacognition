@@ -10,7 +10,7 @@ for emptyroom data
 import sys
 
 from mne.io import read_raw_fif
-from mne.chpi import filter_chpi, read_head_pos
+from mne.chpi import filter_chpi
 from mne import read_annotations
 from mne.preprocessing import maxwell_filter
 from mne.channels import fix_mag_coil_types
@@ -23,73 +23,60 @@ from config import (
     bp_root,
     bp_bads,
     bp_annot,
-    bp_headpos,
     bp_maxfilt,
 )
-from utils import setup_logging, update_bps, parse_args
+from utils import setup_logging
+from dataset_specific_utils import parse_args
 
 logger = setup_logging(__file__)
 
 
-def prepare_raw_and_hp(src_bp_raw, bads_bp, annot_bp, hp_bp):
+def prepare_raw(raw_path, bads_path, annot_path, is_er):
     """Load raw, filter chpi and line noise, set bads and annotations"""
-
-    raw = read_raw_fif(str(src_bp_raw), preload=True)
-    if bads_bp.subject == "emptyroom":
-        filter_chpi(
-            raw, allow_line_only=True, t_window=maxfilt_config["t_window"]
-        )
-    else:
-        filter_chpi(
-            raw, allow_line_only=False, t_window=maxfilt_config["t_window"]
-        )
+    raw = read_raw_fif(raw_path, preload=True)
+    filter_chpi(
+        raw, allow_line_only=is_er, t_window=maxfilt_config["t_window"]
+    )
     fix_mag_coil_types(raw.info)
 
-    with open(bads_bp, "r") as f:
+    with open(bads_path, "r") as f:
         bads = f.readline().split("\t")
         if bads == [""]:
             bads = []
         raw.info["bads"] = bads
 
-    raw.set_annotations(read_annotations(str(annot_bp)))
+    raw.set_annotations(read_annotations(annot_path))
 
-    if bads_bp.subject != "emptyroom":
-        head_pos = read_head_pos(str(hp_bp))
-    else:
-        head_pos = None
-
-    return raw, head_pos
+    return raw
 
 
-def apply_maxfilter(bp_raw, bp_bads, bp_annot, bp_hp, bp_dest):
-    raw, head_pos = prepare_raw_and_hp(bp_raw, bp_bads, bp_annot, bp_hp)
+def apply_maxfilter(raw_path, bads_path, annot_path, maxfilt_path, is_er):
+    raw = prepare_raw(raw_path, bads_path, annot_path, is_er)
 
-    subj_id = bp_dest.subject
-    if subj_id == "emptyroom":
-        coord_frame = "meg"
-    else:
-        coord_frame = "head"
+    coord_frame = "head" if is_er else "meg"
 
     raw_sss = maxwell_filter(
         raw,
-        cross_talk=str(crosstalk_file),
-        calibration=str(cal_file),
+        cross_talk=crosstalk_file,
+        calibration=cal_file,
         skip_by_annotation=[],
         coord_frame=coord_frame,
     )
 
-    raw_sss.save(bp_dest.fpath, overwrite=True)
+    raw_sss.save(maxfilt_path, overwrite=True)
 
 
 if __name__ == "__main__":
-    args = parse_args(__doc__, args=sys.argv[1:], is_applied_to_er=True)
+    args = parse_args(__doc__, args=sys.argv[1:], emptyroom=True)
+    subj, task, run, ses = args.subject, args.task, args.run, args.session
 
-    bp_raw, bp_bads, bp_annot, bp_hp, bp_dest = update_bps(
-        [bp_root, bp_bads, bp_annot, bp_headpos, bp_maxfilt],
-        subject=args.subject,
-        task=args.task,
-        run=args.run,
-        session=args.session,
-    )
-    bp_dest.mkdir()
-    apply_maxfilter(bp_raw, bp_bads, bp_annot, bp_hp, bp_dest)
+    # input
+    raw = bp_root.fpath(subject=subj, task=task, run=run, session=ses)
+    bads = bp_bads.fpath(subject=subj, task=task, run=run, session=ses)
+    annot = bp_annot.fpath(subject=subj, task=task, run=run, session=ses)
+    # output
+    maxfilt = bp_maxfilt.fpath(subject=subj, task=task, run=run, session=ses)
+
+    maxfilt.parent.mkdir(exist_ok=True)
+
+    apply_maxfilter(raw, bads, annot, maxfilt, subj == "emptyroom")

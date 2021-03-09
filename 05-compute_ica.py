@@ -8,12 +8,9 @@ from mne.preprocessing import ICA
 from mne.io import read_raw_fif
 from mne import Report
 
-from config import (
-    ica_config,
-    bp_filt,
-    bp_ica_sol,
-)
-from utils import setup_logging, update_bps, parse_args
+from config import ica_config, bp_filt, bp_ica_sol
+from utils import setup_logging
+from dataset_specific_utils import parse_args
 
 logger = setup_logging(__file__)
 
@@ -27,36 +24,35 @@ def generate_report(raw, ica, report_savepath):
     report.save(report_savepath, overwrite=True, open_browser=False)
 
 
-def compute_ica(bp_src, sol_bp):
-    raw = read_raw_fif(str(bp_src.fpath), preload=True)
+def compute_ica(fif_path, ica_sol_path, task):
+    raw = read_raw_fif(fif_path, preload=True)
     ica = ICA(
         ica_config["n_components"],
         random_state=ica_config["random_state"],
         max_iter=ica_config["max_iter"],
     )
-    decim = (
-        None if sol_bp.task in ("rest", "practice") else ica_config["decim"]
-    )
+    decim = None if task in ("rest", "practice") else ica_config["decim"]
     ica.fit(
         raw,
         picks="data",
         decim=decim,
         reject_by_annotation=ica_config["annot_rej"],
     )
-    ica.save(str(sol_bp))
+    ica.save(ica_sol_path)
 
-    report_bidspath = sol_bp.copy().update(extension=".html")
-    generate_report(raw, ica, str(report_bidspath))
+    report_path = ica_sol_path.stem + ".html"
+    generate_report(raw, ica, report_path)
 
 
 if __name__ == "__main__":
-    args = parse_args(__doc__, args=sys.argv[1:], is_applied_to_er=True)
+    args = parse_args(__doc__, args=sys.argv[1:], emptyroom=False)
+    subj, task = args.subject, args.task
 
-    bp_src, bp_dest = update_bps(
-        [bp_filt, bp_ica_sol],
-        subject=args.subject,
-        task=args.task,
-        session=args.session,
-    )
-    bp_dest.mkdir(exist_ok=True)
-    compute_ica(bp_src, bp_dest)
+    # input
+    filt = bp_filt.fpath(subject=subj, task=task, session=None)
+    # output
+    ica_sol = bp_ica_sol.fpath(subject=subj, task=task)
+
+    ica_sol.parent.mkdir(exist_ok=True)
+
+    compute_ica(filt, ica_sol, task)

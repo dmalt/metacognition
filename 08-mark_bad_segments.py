@@ -4,7 +4,8 @@ import sys
 from mne import read_annotations
 from mne.io import read_raw_fif
 
-from utils import setup_logging, update_bps, parse_args
+from utils import setup_logging
+from dataset_specific_utils import parse_args
 from config import bp_ica, bp_annot_final
 
 logger = setup_logging(__file__)
@@ -20,27 +21,25 @@ def inspect_fif(fif_path, annotations):
     return raw_check.annotations
 
 
-def annotate_file(fif_file, bp_annot):
-    if bp_annot.fpath.exists():
+def annotate_file(fif_file, annot_path):
+    if annot_path.exists():
         logger.info("Loading annotations from file.")
-        annotations = read_annotations(str(bp_annot))
+        annotations = read_annotations(annot_path)
     else:
         annotations = None
     annotations = inspect_fif(fif_file, annotations)
-    annotations.save(str(bp_annot.fpath))
+    annotations.save(annot_path)
 
 
 if __name__ == "__main__":
-    args = parse_args(
-        description=__doc__, args=sys.argv[1:], is_applied_to_er=True
-    )
+    args = parse_args(description=__doc__, args=sys.argv[1:], emptyroom=False)
+    subj, task = args.subject, args.task
 
-    bp_src, dest_bp_annot = update_bps(
-        [bp_ica, bp_annot_final],
-        subject=args.subject,
-        task=args.task,
-        session=args.session,
-    )
-    dest_bp_annot.mkdir(exist_ok=True)
+    # input
+    cleaned_fif = bp_ica.fpath(subject=subj, task=task)
+    # output
+    annot = bp_annot_final.fpath(subject=subj, task=task)
 
-    annotate_file(bp_src.fpath, dest_bp_annot)
+    annot.parent.mkdir(exist_ok=True)
+
+    annotate_file(cleaned_fif, annot)

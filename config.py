@@ -1,8 +1,9 @@
 from pathlib import Path
 from collections import defaultdict
-from functools import partial
 
-from mne_bids import BIDSPath
+import numpy as np
+
+from utils import BIDSPathTemplate
 
 DATASET_NAME = ("metacognition",)
 AUTHORS = (
@@ -22,112 +23,28 @@ BIDS_ROOT = curdir.parent.parent
 RAW_DIR = BIDS_ROOT.parent / "raw"
 BEH_RAW_DIR = RAW_DIR / "behavioral_data"
 
-# create folder for derivatives
 DERIVATIVES_DIR = BIDS_ROOT / "derivatives"
-DERIVATIVES_DIR.mkdir(exist_ok=True)
-
-# create folder for head position
-HP_DIR = DERIVATIVES_DIR / "01-head_positon"
-HP_DIR.mkdir(exist_ok=True)
-
-# create folder for bad channels and bad segments annotations for maxfilter
-BADS_DIR = DERIVATIVES_DIR / "02-maxfilter_bads"
-BADS_DIR.mkdir(exist_ok=True)
-
-# create folder for maxfiltered data
-MAXFILTER_DIR = DERIVATIVES_DIR / "03-maxfilter"
-MAXFILTER_DIR.mkdir(exist_ok=True)
-
-# create foder for filtered and resampled data
-FILTER_DIR = DERIVATIVES_DIR / "04-concat_filter_resample"
-FILTER_DIR.mkdir(exist_ok=True)
-
-# create folder for ICA solutions
-ICA_SOL_DIR = DERIVATIVES_DIR / "05-compute_ica"
-ICA_SOL_DIR.mkdir(exist_ok=True)
-
-# create folder for ICA solutions
-ICA_BADS_DIR = DERIVATIVES_DIR / "06-inspect_ica"
-ICA_BADS_DIR.mkdir(exist_ok=True)
-
-# create folder for raw data with removed bad ICA components
-ICA_DIR = DERIVATIVES_DIR / "07-apply_ica"
-ICA_DIR.mkdir(exist_ok=True)
-
-# create folder for bad segments annotations after ICA cleaning
-BAD_SEGMENTS_DIR = DERIVATIVES_DIR / "08-mark_bad_segments"
-BAD_SEGMENTS_DIR.mkdir(exist_ok=True)
-
-# create folder for epoched data
-EPOCHS_DIR = DERIVATIVES_DIR / "09-make_epochs"
-EPOCHS_DIR.mkdir(exist_ok=True)
-
-# create folder for reports
-REPORTS_DIR = DERIVATIVES_DIR / "99-reports"
-REPORTS_DIR.mkdir(exist_ok=True)
-
-# create folder for freesurfer tesselations
-SUBJECTS_DIR = DERIVATIVES_DIR / "FSF"
-SUBJECTS_DIR.mkdir(exist_ok=True)
-
-# create folder for coregistrations
-COREG_DIR = DERIVATIVES_DIR / "10-coreg"
-COREG_DIR.mkdir(exist_ok=True)
-
-# create folder for forward models
-FORWARDS_DIR = DERIVATIVES_DIR / "11-forwards"
-FORWARDS_DIR.mkdir(exist_ok=True)
-
-# create folder for source estimates
-SOURCES_DIR = DERIVATIVES_DIR / "12-sources"
-SOURCES_DIR.mkdir(exist_ok=True)
+HP_DIR           = DERIVATIVES_DIR / "01-head_positon"            # noqa
+BADS_DIR         = DERIVATIVES_DIR / "02-maxfilter_bads"          # noqa
+MAXFILTER_DIR    = DERIVATIVES_DIR / "03-maxfilter"               # noqa
+FILTER_DIR       = DERIVATIVES_DIR / "04-concat_filter_resample"  # noqa
+ICA_SOL_DIR      = DERIVATIVES_DIR / "05-compute_ica"             # noqa
+ICA_BADS_DIR     = DERIVATIVES_DIR / "06-inspect_ica"             # noqa
+ICA_DIR          = DERIVATIVES_DIR / "07-apply_ica"               # noqa
+BAD_SEGMENTS_DIR = DERIVATIVES_DIR / "08-mark_bad_segments"       # noqa
+EPOCHS_DIR       = DERIVATIVES_DIR / "09-make_epochs"             # noqa
+SUBJECTS_DIR     = DERIVATIVES_DIR / "FSF"                        # noqa
+COREG_DIR        = DERIVATIVES_DIR / "10-coreg"                   # noqa
+FORWARDS_DIR     = DERIVATIVES_DIR / "11-forwards"                # noqa
+INVERSE_DIR      = DERIVATIVES_DIR / "12-inverses"                # noqa
+SOURCES_DIR      = DERIVATIVES_DIR / "13-sources"                 # noqa
+TFR_DIR          = DERIVATIVES_DIR / "15-tfr"                     # noqa
+TFR_AVERAGE_DIR  = DERIVATIVES_DIR / "16-average_tfr"             # noqa
+REPORTS_DIR      = DERIVATIVES_DIR / "99-reports"                 # noqa
 
 crosstalk_file = str(BIDS_ROOT / "SSS_data" / "ct_sparse.fif")
 cal_file = str(BIDS_ROOT / "SSS_data" / "sss_cal.dat")
 subj_ids_file = BIDS_ROOT / "code" / "added_subjects.tsv"
-
-
-def iter_files(subjects, runs_return="sep"):
-    """
-    For each subject generate all valid combinations of bids keywords.
-
-    Parameters
-    ----------
-    subjects : list of str
-        subject IDs
-    runs_return : "sep" | "joint" | None
-        controls iteration over runs (see Yields section)
-
-    Yields
-    ------
-    (subj, task, run, ses) tuple if runs_renturn == "sep",
-    (subj, task, list of subj runs, ses) tuple if runs_renturn == "joint",
-    (subj, task, ses) tuple if runs_renturn == None
-
-    """
-    for subj in subjects:
-        if subj == "emptyroom":
-            task = "noise"
-            for ses in er_sessions:
-                if runs_return is not None:
-                    yield (subj, task, None, ses)
-                else:
-                    yield (subj, task, ses)
-        else:
-            for task in subj_tasks[subj]:
-                if task == "questions":
-                    if runs_return == "sep":
-                        for run in subj_runs[subj]:
-                            yield (subj, task, run, None)
-                    elif runs_return == "joint":
-                        yield (subj, task, [r for r in subj_runs[subj]], None)
-                    else:
-                        yield (subj, task, None)
-                else:
-                    if runs_return is not None:
-                        yield (subj, task, None, None)
-                    else:
-                        yield (subj, task, None)
 
 
 EVENTS_ID = {
@@ -138,24 +55,54 @@ EVENTS_ID = {
     "confidence": 5,
 }
 
+# scores for numerical encoding of events;
+# score is added to event numerical id to separate events by confidence level
+confidence_trigger_scores = {
+    "lowest": 10,
+    "low": 20,
+    "medium": 30,
+    "high": 40,
+    "highest": 50,
+    "nan": 60,
+}
 
-bp_template = BIDSPath(datatype=None, check=False, extension="fif")
-bp_root = bp_template.copy().update(
-    root=BIDS_ROOT, datatype="meg", suffix="meg"
+target_bands = {
+    "alpha": (8, 12),
+    "delta": (2, 4),
+    "theta": (4, 8),
+    "beta": (13, 25),
+}
+
+# bp_template = BIDSPathTemplate(datatype=None, check=False, extension="fif")
+bp_root = BIDSPathTemplate(
+    root=BIDS_ROOT, datatype="meg", suffix="meg", extension=".fif",
+    template_vars=["subject", "task", "run", "session"],
+)
+# only need this to get emptyroom, so no session template
+bp_root_json = BIDSPathTemplate(
+    root=BIDS_ROOT, datatype="meg", suffix="meg", extension=".json",
+    template_vars=["subject", "task", "run"],
 )
 # -------- 01-compute_head_position -------- #
-bp_headpos = bp_template.copy().update(
-    root=HP_DIR, suffix="hp", extension=".pos"
+bp_headpos = BIDSPathTemplate(
+    root=HP_DIR, suffix="hp", extension=".pos",
+    template_vars=["subject", "task", "run"],
 )
 # ------------------------------------------ #
 
 # -------- 02-mark_bads_maxfilter -------- #
-bp_annot = bp_template.copy().update(root=BADS_DIR, suffix="annot")
-bp_bads = bp_annot.copy().update(suffix="bads", extension="tsv")
+bp_annot = BIDSPathTemplate(
+    root=BADS_DIR, suffix="annot", extension=".fif",
+    template_vars=["subject", "task", "run", "session"],
+)
+bp_bads = bp_annot.update(suffix="bads", extension="tsv")
 # ---------------------------------------- #
 
 # -------- 03-apply_maxfilter -------- #
-bp_maxfilt = bp_root.copy().update(root=MAXFILTER_DIR, processing="sss")
+bp_maxfilt = BIDSPathTemplate(
+    root=MAXFILTER_DIR, processing="sss", suffix="meg", extension=".fif",
+    template_vars=["subject", "task", "run", "session"],
+)
 maxfilt_config = {"t_window": "auto"}
 # ------------------------------------ #
 
@@ -166,8 +113,9 @@ concat_config = {
     "pad": "symmetric",
 }
 
-bp_filt = bp_root.copy().update(
-    root=FILTER_DIR, processing="filt", suffix="meg", run=None,
+bp_filt = BIDSPathTemplate(
+    root=FILTER_DIR, processing="filt", suffix="meg", extension="fif",
+    template_vars=["subject", "task", "session"],
 )
 # ------------------------------------------- #
 
@@ -180,39 +128,66 @@ ica_config = {
     "max_iter": 1000,
 }
 
-bp_ica_sol = bp_filt.copy().update(
-    root=ICA_SOL_DIR, suffix="ica", datatype=None
+bp_ica_sol = BIDSPathTemplate(
+    root=ICA_SOL_DIR, processing="filt", suffix="ica", extension=".fif",
+    template_vars=["subject", "task"],
 )
 # -------------------------------- #
 
 # -------- 06-inspect_ica -------- #
-bp_ica_bads = bp_ica_sol.copy().update(
-    root=ICA_BADS_DIR, suffix="icabads", extension="tsv"
+bp_ica_bads = BIDSPathTemplate(
+    root=ICA_BADS_DIR, processing="filt", suffix="icabads", extension="tsv",
+    template_vars=["subject", "task"],
 )
 # ------------------------------ #
 
 # -------- 07-apply_ica -------- #
-bp_ica = bp_root.copy().update(root=ICA_DIR, processing="ica")
+bp_ica = BIDSPathTemplate(
+    root=ICA_DIR, processing="ica", suffix="meg", extension="fif",
+    template_vars=["subject", "task"],
+)
 # ------------------------------ #
 
 # -------- 08-mark_bad_segments -------- #
-bp_annot_final = bp_ica.copy().update(root=BAD_SEGMENTS_DIR, suffix="annot")
+bp_annot_final = BIDSPathTemplate(
+    root=BAD_SEGMENTS_DIR, processing="ica", suffix="annot", extension="fif",
+    template_vars=["subject", "task"],
+)
 # -------------------------------------- #
 
 # -------- 09-make_epochs -------- #
-bp_epochs = bp_ica.copy().update(root=EPOCHS_DIR, suffix="epo")
+bp_epochs = BIDSPathTemplate(
+    root=EPOCHS_DIR, processing="ica", task="questions", suffix="epo", extension="fif", # noqa
+    template_vars=["subject"],
+)
+bp_beh = BIDSPathTemplate(
+    root=BIDS_ROOT, datatype="beh", task="questions", suffix="behav", extension="tsv", # noqa
+    template_vars=["subject"]
+)
+epochs_config = dict(
+    tmin=-1,
+    tmax=1,
+    baseline=None,
+    reject=None,
+    flat=None,
+    reject_by_annotation=True,
+    on_missing="ignore",
+)
 # -------------------------------- #
 
 # -------- FSF -------- #
-# some_code
-bp_anat = bp_root.copy().update(
-    datatype="anat", suffix="T1w", extension="nii.gz"
+bp_anat = BIDSPathTemplate(
+    root=BIDS_ROOT, datatype="anat", suffix="T1w", extension="nii.gz",
+    template_vars=["subject"],
 )
 fsf_config = {"openmp": 8}
 # --------------------- #
 
 # -------- 10-coreg -------- #
-trans_path = str(COREG_DIR / "sub-{subject}-trans.fif")
+bp_trans = BIDSPathTemplate(
+    root=COREG_DIR, suffix="trans", extension="fif",
+    template_vars=["subject"],
+)
 # -------------------------- #
 
 # -------- 11-compute_forward -------- #
@@ -222,10 +197,50 @@ fwd_config = {
     "conductivity": (0.3,),
     "spacing": "oct6",
 }
-fwd_path = str(
-    FORWARDS_DIR / "sub-{{subject}}_spacing-{spacing}-fwd.fif"
-).format(spacing=fwd_config["spacing"])
+bp_fwd = BIDSPathTemplate(
+    root=FORWARDS_DIR, acquisition=fwd_config["spacing"], suffix="fwd", extension="fif", # noqa
+    template_vars=["subject"]
+)
 # ------------------------------------ #
+
+# -------- 12-compute_inverse -------- #
+bp_inv = BIDSPathTemplate(
+    root=INVERSE_DIR, suffix="inv", acquisition=fwd_config["spacing"], extension="fif", # noqa
+    template_vars=["subject"],
+)
+
+# ------------------------------------ #
+
+# -------- 13-compute_sources -------- #
+config_sources = dict(
+    baseline_win=[-1, -0.25],
+    active_win=[0.25, 1],
+)
+# ------------------------------------ #
+
+# -------- 13-compute_sources -------- #
+bp_tfr = BIDSPathTemplate(
+    root=TFR_DIR, processing="ica", suffix="tfr", extension="h5", # noqa
+    template_vars=["subject"],
+)
+# bp_itc = BIDSPathTemplate(
+#     root=TFR_DIR, processing="ica", suffix="itc", extension="h5", # noqa
+#     template_vars=["subject"],
+# )
+tfr_config = dict(
+    freqs=dict(start=1.0, stop=30., step=1.),
+    decim=4,
+    use_fft=True,
+)
+# ------------------------------------ #
+
+
+# -------- average_tfr -------- #
+bp_tfr_av = BIDSPathTemplate(
+    root=TFR_AVERAGE_DIR, processing="ica", suffix="tfr", extension="h5", # noqa
+    template_vars=["subject", "acquisition"],
+)
+# ----------------------------- #
 
 
 all_subjects = [

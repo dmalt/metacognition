@@ -1,6 +1,5 @@
-"""Create and manually mark bad epochs."""
-import sys
-from pathlib import Path
+"""Create epochs from annotated files"""
+from argparse import ArgumentParser
 from itertools import product
 
 import pandas as pd
@@ -10,25 +9,18 @@ from mne import Epochs, find_events, read_annotations
 from mne.io import read_raw_fif
 
 from config import (
-    BIDS_ROOT,
-    EPOCHS_DIR,
     EVENTS_ID,
     bp_ica,
     bp_annot_final,
     bp_epochs,
+    bp_beh,
+    epochs_config,
+    confidence_trigger_scores,
 )
-from utils import setup_logging, bids_from_path, parse_args, update_bps
+from utils import setup_logging
+from dataset_specific_utils import get_confidence_level
 
 logger = setup_logging(__file__)
-
-confidence_trigger_scores = {
-    "lowest": 10,
-    "low": 20,
-    "medium": 30,
-    "high": 40,
-    "highest": 50,
-    "nan": 60,
-}
 
 ev_id_confidence = {}
 for trig, conf_lvl in product(EVENTS_ID, confidence_trigger_scores):
@@ -37,73 +29,104 @@ for trig, conf_lvl in product(EVENTS_ID, confidence_trigger_scores):
     )
 
 
-def transform_events(events, subj_name):
+def get_question_data(i_question, df):
+    row = df.loc[i_question]
+    try:
+        confidence = int(row["оценка"])
+    except ValueError:
+        confidence = np.nan
+    if row["ответ"] in ('1', '2', '3'):
+        is_correct = False
+    elif row["ответ"] == "c" or row["ответ"] == "с":
+        is_correct = True
+    else:
+        is_correct = np.nan
+    try:
+        question_num = int(row["question№"])
+    except ValueError:
+        question_num = np.nan
+    return confidence, is_correct, question_num
 
-    beh_fpath = next((BIDS_ROOT / subj_name / "beh").glob("*.tsv"))
-    beh_df = pd.read_csv(beh_fpath, sep="\t")
-    # assert len(events[events[:, 2] == EVENTS_ID["answer"]]) == len(beh_df)
-    # assert len(events[events[:, 2] == EVENTS_ID["fixcross"]]) == len(beh_df)
+
+def transform_events(events, metadata):
+    assert len(events[events[:, 2] == EVENTS_ID["answer"]]) == len(metadata)
+    assert len(events[events[:, 2] == EVENTS_ID["fixcross"]]) == len(metadata)
 
     i_question = 0
     for i, ev in enumerate(events):
         if i_question == 0 or ev[2] == EVENTS_ID["question/second"]:
-            try:
-                confidence = int(beh_df.loc[i_question, "оценка"])
-            except ValueError:
-                confidence = np.nan
-            if confidence == 0:
-                confidence_lvl = "lowest"
-            elif 10 <= confidence <= 30:
-                confidence_lvl = "low"
-            elif 40 <= confidence <= 60:
-                confidence_lvl = "medium"
-            elif 70 <= confidence <= 90:
-                confidence_lvl = "high"
-            elif confidence == 100:
-                confidence_lvl = "highest"
-            elif pd.isnull(confidence):
-                confidence_lvl = "nan"
-            else:
-                raise ValueError(f"Bad confidence: {confidence}")
+            confidence, is_correct, question_num = get_question_data(
+                i_question, beh_df
+            )
+            confidence_lvl = get_confidence_level(confidence)
         if ev[2] == EVENTS_ID["confidence"]:
             i_question += 1
+        beh_data["confidence"].append(confidence)
+        beh_data["is_correct"].append(is_correct)
+        beh_data["question_num"].append(question_num)
         events[i, 2] += confidence_trigger_scores[confidence_lvl]
-    return events
 
 
-def make_epochs(bp_src, bp_annot, bp_dest):
-    raw = read_raw_fif(bp_src.fpath)
-    if bp_annot.fpath.exists():
+def get_events_metadata(events, beh_df):
+    """
+    Get behavioral metadata for each event
+
+    Since each question corresponds to multiple events, we need to assign
+    the same metadata to events within one question. Therefore we pick the next
+    question only when the new event is of "confidence" type
+    """
+    assert len(events[events[:, 2] == EVENTS_ID["answer"]]) == len(beh_df)
+    assert len(events[events[:, 2] == EVENTS_ID["fixcross"]]) == len(beh_df)
+    i_question = 0
+    beh_data = {"confidence": [], "is_correct": [], "question_num": []}
+    for i, ev in enumerate(events):
+        if i_question == 0 or ev[2] == EVENTS_ID["question/second"]:
+            confidence, is_correct, question_num = get_question_data(
+                i_question, beh_df
+            )
+            confidence_lvl = get_confidence_level(confidence)
+        if ev[2] == EVENTS_ID["confidence"]:
+            i_question += 1
+        beh_data["confidence"].append(confidence)
+        beh_data["is_correct"].append(is_correct)
+        beh_data["question_num"].append(question_num)
+        events[i, 2] += confidence_trigger_scores[confidence_lvl]
+
+    metadata = pd.DataFrame(beh_data)
+    return events, metadata
+
+
+def make_epochs(fif_path, annot_path, beh_path, epochs_path):
+    raw = read_raw_fif(fif_path)
+    if annot_path.exists():
         logger.info("Loading annotations from file.")
-        raw.set_annotations(read_annotations(bp_annot.fpath))
+        raw.set_annotations(read_annotations(annot_path))
+    beh_df = pd.read_csv(beh_path, sep="\t")
     events = find_events(raw, min_duration=2 / raw.info["sfreq"])
-    events = transform_events(events, "sub-" + bp_dest.subject)
+    events, metadata = get_events_metadata(events, beh_df)
+
     epochs = Epochs(
         raw,
         events,
-        tmin=-1,
-        tmax=1,
-        baseline=None,
         event_id=ev_id_confidence,
-        reject=None,
-        flat=None,
-        reject_by_annotation=True,
-        on_missing="ignore",
+        metadata=metadata,
+        **epochs_config
     )
-
-    epochs.save(bp_dest.fpath, overwrite=True)
+    epochs.save(epochs_path, overwrite=True)
 
 
 if __name__ == "__main__":
-    args = parse_args(__doc__, args=sys.argv[1:], is_applied_to_er=True)
-    assert args.task not in ("rest", "noise")
+    parser = ArgumentParser(description=__doc__)
+    parser.add_argument("subject", help="subject id")
+    subj = parser.parse_args().subject
 
-    src_bp_ica, src_bp_annot, bp_dest = update_bps(
-        [bp_ica, bp_annot_final, bp_epochs],
-        subject=args.subject,
-        task=args.task,
-        session=args.session,
-    )
-    bp_dest.mkdir(exist_ok=True)
+    # input
+    cleaned_fif = bp_ica.fpath(subject=subj, task="questions")
+    annot = bp_annot_final.fpath(subject=subj, task="questions")
+    beh = bp_beh.fpath(subject=subj)
+    # output
+    epochs = bp_epochs.fpath(subject=subj)
 
-    make_epochs(src_bp_ica, src_bp_annot, bp_dest)
+    epochs.parent.mkdir(exist_ok=True)
+
+    make_epochs(cleaned_fif, annot, beh, epochs)
