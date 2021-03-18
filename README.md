@@ -1,3 +1,55 @@
+Installation
+============
+
+First, download and install Anaconda python distribution suitable for your OS.
+We recommend using [miniconda](https://docs.conda.io/en/latest/miniconda.html) since
+we won't need the preinstalled packages coming with the main distribution.
+
+
+Full installation
+-----------------
+Download data processing scripts + set up virtual environment with dependencies
+
+### Linux
+In terminal navigate to directory you want to work from, i.e.
+```bash
+cd ~/Projects
+```
+And run the commands below.
+Note that environment name (`--name metacog` argument) can be changed to your likings.
+```bash
+git clone https://github.com/dmalt/metacognition.git
+cd metacognition
+conda env create --name metacog -f environment.yml
+```
+
+
+### Windows
+Open Anaconda prompt and [install `git` package](https://anaconda.org/anaconda/git).
+Follow instructions for Linux using Anaconda prompt
+
+Setting up conda environment only
+---------------------------------
+Don't download the scripts for now, just set up the virtual environment.
+
+### Windows
+In Anaconda prompt run the following (note that env name `--name metacog` can be changed):
+```bash
+conda install -c anaconda curl
+curl --remote-name https://github.com/dmalt/metacognition/blob/master/environment.yml
+conda env create --name metacog -f environment.yml
+```
+
+**To test the installation**
+1. change `metacog` to your env name if you set the custom name with `--name` at the installation step
+2. run the following:
+```bash
+conda activate metacog
+python -c "import mne; mne.sys_info()"
+```
+This should display some system information along with the versions of MNE-Python and its dependencies.
+
+
 Dataset structure
 =================
 ```
