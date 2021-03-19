@@ -12,6 +12,7 @@ dependencies:
   - scipy>=1.5
   - tqdm>=4.48
   - xlrd>=1.2
+  - scikit-learn
   - pip:
     - doit==0.33.1
     - envisage==4.9.2
@@ -24,6 +25,5 @@ dependencies:
     - pytest==6.2.2
     - pytest-sugar==0.9.4
     - pyvista==0.25.3
-    - sklearn==0.23
     - termcolor==1.1.0
     - vtk==9.0.1
