@@ -36,7 +36,7 @@ Don't download the scripts for now, just set up the virtual environment.
 In Anaconda prompt run the following (note that env name `--name metacog` can be changed):
 ```bash
 conda install -c anaconda curl
-curl --remote-name https://github.com/dmalt/metacognition/blob/master/environment.yml
+curl --remote-name https://raw.githubusercontent.com/dmalt/metacognition/master/environment.yml
 conda env create --name metacog -f environment.yml
 ```
 
