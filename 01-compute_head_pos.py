@@ -30,12 +30,12 @@ def compute_head_position(src: Path) -> np.ndarray:
 
 if __name__ == "__main__":
     args = parse_args(description=__doc__, args=sys.argv[1:], emptyroom=False)
-    subj, task, run, ses = args.subject, args.task, args.run, args.session
+    subj, task, run = args.subject, args.task, args.run
 
     # input
-    raw = bp_root.fpath(subjet=subj, task=task, run=run)
+    raw = bp_root.fpath(subject=subj, task=task, run=run, session=None)
     # output
-    headpos = bp_headpos.fpath(subjet=subj, task=task, run=run)
+    headpos = bp_headpos.fpath(subject=subj, task=task, run=run)
 
     headpos.parent.mkdir(exist_ok=True)
     logger.info(f"Processing {raw.name} --> {headpos}")
