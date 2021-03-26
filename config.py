@@ -1,7 +1,6 @@
-from pathlib import Path
 from collections import defaultdict
-
-import numpy as np
+from pathlib import Path
+from types import SimpleNamespace
 
 from utils import BIDSPathTemplate
 
@@ -15,36 +14,37 @@ AUTHORS = (
     ],
 )
 
+dirs = SimpleNamespace()
 # setup BIDS root folder
-curdir = Path(__file__).resolve()
-BIDS_ROOT = curdir.parent.parent
+dirs.current = Path(__file__).resolve()
+dirs.bids_root = dirs.current.parent.parent
 
 # setup source data folder
-RAW_DIR = BIDS_ROOT.parent / "raw"
-BEH_RAW_DIR = RAW_DIR / "behavioral_data"
+dirs.raw          = dirs.bids_root.parent / "raw"                   # noqa
+dirs.beh_raw      = dirs.raw / "behavioral_data"                    # noqa
 
-DERIVATIVES_DIR = BIDS_ROOT / "derivatives"
-HP_DIR           = DERIVATIVES_DIR / "01-head_positon"            # noqa
-BADS_DIR         = DERIVATIVES_DIR / "02-maxfilter_bads"          # noqa
-MAXFILTER_DIR    = DERIVATIVES_DIR / "03-maxfilter"               # noqa
-FILTER_DIR       = DERIVATIVES_DIR / "04-concat_filter_resample"  # noqa
-ICA_SOL_DIR      = DERIVATIVES_DIR / "05-compute_ica"             # noqa
-ICA_BADS_DIR     = DERIVATIVES_DIR / "06-inspect_ica"             # noqa
-ICA_DIR          = DERIVATIVES_DIR / "07-apply_ica"               # noqa
-BAD_SEGMENTS_DIR = DERIVATIVES_DIR / "08-mark_bad_segments"       # noqa
-EPOCHS_DIR       = DERIVATIVES_DIR / "09-make_epochs"             # noqa
-SUBJECTS_DIR     = DERIVATIVES_DIR / "FSF"                        # noqa
-COREG_DIR        = DERIVATIVES_DIR / "10-coreg"                   # noqa
-FORWARDS_DIR     = DERIVATIVES_DIR / "11-forwards"                # noqa
-INVERSE_DIR      = DERIVATIVES_DIR / "12-inverses"                # noqa
-SOURCES_DIR      = DERIVATIVES_DIR / "13-sources"                 # noqa
-TFR_DIR          = DERIVATIVES_DIR / "15-tfr"                     # noqa
-TFR_AVERAGE_DIR  = DERIVATIVES_DIR / "16-average_tfr"             # noqa
-REPORTS_DIR      = DERIVATIVES_DIR / "99-reports"                 # noqa
+dirs.derivatives  = dirs.bids_root   / "derivatives"                # noqa
+dirs.hp           = dirs.derivatives / "01-head_positon"            # noqa
+dirs.bads         = dirs.derivatives / "02-maxfilter_bads"          # noqa
+dirs.maxfilter    = dirs.derivatives / "03-maxfilter"               # noqa
+dirs.filter       = dirs.derivatives / "04-concat_filter_resample"  # noqa
+dirs.ica_sol      = dirs.derivatives / "05-compute_ica"             # noqa
+dirs.ica_bads     = dirs.derivatives / "06-inspect_ica"             # noqa
+dirs.ica          = dirs.derivatives / "07-apply_ica"               # noqa
+dirs.bad_segments = dirs.derivatives / "08-mark_bad_segments"       # noqa
+dirs.epochs       = dirs.derivatives / "09-make_epochs"             # noqa
+dirs.subjects     = dirs.derivatives / "FSF"                        # noqa
+dirs.coreg        = dirs.derivatives / "10-coreg"                   # noqa
+dirs.forwards     = dirs.derivatives / "11-forwards"                # noqa
+dirs.inverse      = dirs.derivatives / "12-inverses"                # noqa
+dirs.sources      = dirs.derivatives / "13-sources"                 # noqa
+dirs.tfr          = dirs.derivatives / "15-tfr"                     # noqa
+dirs.tfr_average  = dirs.derivatives / "16-average_tfr"             # noqa
+dirs.reports      = dirs.derivatives / "99-reports"                 # noqa
 
-crosstalk_file = str(BIDS_ROOT / "SSS_data" / "ct_sparse.fif")
-cal_file = str(BIDS_ROOT / "SSS_data" / "sss_cal.dat")
-subj_ids_file = BIDS_ROOT / "code" / "added_subjects.tsv"
+crosstalk_file = str(dirs.bids_root / "SSS_data" / "ct_sparse.fif")
+cal_file = str(dirs.bids_root / "SSS_data" / "sss_cal.dat")
+subj_ids_file = dirs.bids_root / "code" / "added_subjects.tsv"
 
 
 EVENTS_ID = {
@@ -75,24 +75,24 @@ target_bands = {
 
 # bp_template = BIDSPathTemplate(datatype=None, check=False, extension="fif")
 bp_root = BIDSPathTemplate(
-    root=BIDS_ROOT, datatype="meg", suffix="meg", extension=".fif",
+    root=dirs.bids_root, datatype="meg", suffix="meg", extension=".fif",
     template_vars=["subject", "task", "run", "session"],
 )
 # only need this to get emptyroom, so no session template
 bp_root_json = BIDSPathTemplate(
-    root=BIDS_ROOT, datatype="meg", suffix="meg", extension=".json",
+    root=dirs.bids_root, datatype="meg", suffix="meg", extension=".json",
     template_vars=["subject", "task", "run"],
 )
 # -------- 01-compute_head_position -------- #
 bp_headpos = BIDSPathTemplate(
-    root=HP_DIR, suffix="hp", extension=".pos",
+    root=dirs.hp, suffix="hp", extension=".pos",
     template_vars=["subject", "task", "run"],
 )
 # ------------------------------------------ #
 
 # -------- 02-mark_bads_maxfilter -------- #
 bp_annot = BIDSPathTemplate(
-    root=BADS_DIR, suffix="annot", extension=".fif",
+    root=dirs.bads, suffix="annot", extension=".fif",
     template_vars=["subject", "task", "run", "session"],
 )
 bp_bads = bp_annot.update(suffix="bads", extension="tsv")
@@ -100,7 +100,7 @@ bp_bads = bp_annot.update(suffix="bads", extension="tsv")
 
 # -------- 03-apply_maxfilter -------- #
 bp_maxfilt = BIDSPathTemplate(
-    root=MAXFILTER_DIR, processing="sss", suffix="meg", extension=".fif",
+    root=dirs.maxfilter, processing="sss", suffix="meg", extension=".fif",
     template_vars=["subject", "task", "run", "session"],
 )
 maxfilt_config = {"t_window": "auto"}
@@ -114,7 +114,7 @@ concat_config = {
 }
 
 bp_filt = BIDSPathTemplate(
-    root=FILTER_DIR, processing="filt", suffix="meg", extension="fif",
+    root=dirs.filter, processing="filt", suffix="meg", extension="fif",
     template_vars=["subject", "task", "session"],
 )
 # ------------------------------------------- #
@@ -129,39 +129,39 @@ ica_config = {
 }
 
 bp_ica_sol = BIDSPathTemplate(
-    root=ICA_SOL_DIR, processing="filt", suffix="ica", extension=".fif",
+    root=dirs.ica_sol, processing="filt", suffix="ica", extension=".fif",
     template_vars=["subject", "task"],
 )
 # -------------------------------- #
 
 # -------- 06-inspect_ica -------- #
 bp_ica_bads = BIDSPathTemplate(
-    root=ICA_BADS_DIR, processing="filt", suffix="icabads", extension="tsv",
+    root=dirs.ica_bads, processing="filt", suffix="icabads", extension="tsv",
     template_vars=["subject", "task"],
 )
 # ------------------------------ #
 
 # -------- 07-apply_ica -------- #
 bp_ica = BIDSPathTemplate(
-    root=ICA_DIR, processing="ica", suffix="meg", extension="fif",
+    root=dirs.ica, processing="ica", suffix="meg", extension="fif",
     template_vars=["subject", "task"],
 )
 # ------------------------------ #
 
 # -------- 08-mark_bad_segments -------- #
 bp_annot_final = BIDSPathTemplate(
-    root=BAD_SEGMENTS_DIR, processing="ica", suffix="annot", extension="fif",
+    root=dirs.bad_segments, processing="ica", suffix="annot", extension="fif",
     template_vars=["subject", "task"],
 )
 # -------------------------------------- #
 
 # -------- 09-make_epochs -------- #
 bp_epochs = BIDSPathTemplate(
-    root=EPOCHS_DIR, processing="ica", task="questions", suffix="epo", extension="fif", # noqa
+    root=dirs.epochs, processing="ica", task="go", suffix="epo", extension="fif", # noqa
     template_vars=["subject"],
 )
 bp_beh = BIDSPathTemplate(
-    root=BIDS_ROOT, datatype="beh", task="questions", suffix="behav", extension="tsv", # noqa
+    root=dirs.bids_root, datatype="beh", task="questions", suffix="behav", extension="tsv", # noqa
     template_vars=["subject"]
 )
 epochs_config = dict(
@@ -177,7 +177,7 @@ epochs_config = dict(
 
 # -------- FSF -------- #
 bp_anat = BIDSPathTemplate(
-    root=BIDS_ROOT, datatype="anat", suffix="T1w", extension="nii.gz",
+    root=dirs.bids_root, datatype="anat", suffix="T1w", extension="nii.gz",
     template_vars=["subject"],
 )
 fsf_config = {"openmp": 8}
@@ -185,7 +185,7 @@ fsf_config = {"openmp": 8}
 
 # -------- 10-coreg -------- #
 bp_trans = BIDSPathTemplate(
-    root=COREG_DIR, suffix="trans", extension="fif",
+    root=dirs.coreg, suffix="trans", extension="fif",
     template_vars=["subject"],
 )
 # -------------------------- #
@@ -198,14 +198,14 @@ fwd_config = {
     "spacing": "oct6",
 }
 bp_fwd = BIDSPathTemplate(
-    root=FORWARDS_DIR, acquisition=fwd_config["spacing"], suffix="fwd", extension="fif", # noqa
+    root=dirs.forwards, acquisition=fwd_config["spacing"], suffix="fwd", extension="fif", # noqa
     template_vars=["subject"]
 )
 # ------------------------------------ #
 
 # -------- 12-compute_inverse -------- #
 bp_inv = BIDSPathTemplate(
-    root=INVERSE_DIR, suffix="inv", acquisition=fwd_config["spacing"], extension="fif", # noqa
+    root=dirs.inverse, suffix="inv", acquisition=fwd_config["spacing"], extension="fif", # noqa
     template_vars=["subject"],
 )
 
@@ -220,11 +220,11 @@ config_sources = dict(
 
 # -------- 13-compute_sources -------- #
 bp_tfr = BIDSPathTemplate(
-    root=TFR_DIR, processing="ica", suffix="tfr", extension="h5", # noqa
+    root=dirs.tfr, processing="ica", suffix="tfr", extension="h5", # noqa
     template_vars=["subject"],
 )
 # bp_itc = BIDSPathTemplate(
-#     root=TFR_DIR, processing="ica", suffix="itc", extension="h5", # noqa
+#     root=dirs.tfr, processing="ica", suffix="itc", extension="h5", # noqa
 #     template_vars=["subject"],
 # )
 tfr_config = dict(
@@ -237,7 +237,7 @@ tfr_config = dict(
 
 # -------- average_tfr -------- #
 bp_tfr_av = BIDSPathTemplate(
-    root=TFR_AVERAGE_DIR, processing="ica", suffix="tfr", extension="h5", # noqa
+    root=dirs.tfr_average, processing="ica", suffix="tfr", extension="h5", # noqa
     template_vars=["subject", "acquisition"],
 )
 # ----------------------------- #
@@ -309,10 +309,10 @@ er_sessions = [
 ]
 
 if __name__ == "__main__":
-    print(f"Current path is {curdir}")
-    print(f"BIDS_ROOT is {BIDS_ROOT}")
-    print(f"RAW_DIR is {RAW_DIR}")
-    print(f"DERIVATIVES_DIR is {DERIVATIVES_DIR}")
-    print(f"HP_DIR is {HP_DIR}")
-    print(f"REPORTS_DIR is {REPORTS_DIR}")
-    print(f"SUBJECTS_DIR is {SUBJECTS_DIR}")
+    print(f"Current path is {dirs.current}")
+    print(f"dirs.bids_root is {dirs.bids_root}")
+    print(f"dirs.raw is {dirs.raw}")
+    print(f"dirs.derivatives is {dirs.derivatives}")
+    print(f"dirs.hp is {dirs.hp}")
+    print(f"dirs.reports is {dirs.reports}")
+    print(f"dirs.subjects is {dirs.subjects}")

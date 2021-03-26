@@ -4,16 +4,16 @@ from mne.stats import (
     summarize_clusters_stc, spatio_temporal_cluster_test, ttest_ind_no_p,
 )
 
-from config import SOURCES_DIR, SUBJECTS_DIR, subjects
+from config import dirs, subjects
 
 # stcs_low = []
 # stcs_high = []
-src_path = SUBJECTS_DIR / "fsaverage/bem/fsaverage-oct-6-src.fif"
+src_path = dirs.subjects / "fsaverage/bem/fsaverage-oct-6-src.fif"
 src = read_source_spaces(src_path)
 
 is_first_iter = True
-subj_paths = [SOURCES_DIR / f"sub-{s}" for s in subjects]
-# subj_paths = sorted(SOURCES_DIR.iterdir())
+subj_paths = [dirs.sources / f"sub-{s}" for s in subjects]
+# subj_paths = sorted(dirs.sources.iterdir())
 n_subjects = len(subj_paths)
 stcs = []
 stcs_low = []
@@ -21,7 +21,7 @@ stcs_high = []
 
 X_high = []  # high confidence
 X_low = []  # low confidence
-for trial_path in SOURCES_DIR.glob("*/*.stc"):
+for trial_path in dirs.sources.glob("*/*.stc"):
     if trial_path.match("*cond-high*"):
         X_high.append(
             read_source_estimate(str(trial_path)[: -len("-rh.stc")]).data.T
@@ -61,7 +61,7 @@ stc_all_cluster_vis = summarize_clusters_stc(
 )
 stc_all_cluster_vis
 
-stc_all_cluster_vis.plot(subjects_dir=SUBJECTS_DIR, hemi="both")
+stc_all_cluster_vis.plot(subjects_dir=dirs.subjects, hemi="both")
 
 # good_ids = np.where(cluster_pv < thresh_pv)[0]
 

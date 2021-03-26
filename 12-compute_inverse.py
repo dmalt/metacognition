@@ -12,7 +12,7 @@ from config import (
     bp_epochs,
     bp_inv,
     bp_root_json,
-    BIDS_ROOT,
+    dirs,
     bp_ica_sol,
     bp_ica_bads,
 )
@@ -27,7 +27,7 @@ subj = parser.parse_args().subject
 json_path = bp_root_json.fpath(subject=subj, task="rest", run=None)
 with open(json_path, "r") as f:
     er_relpath = json.load(f)["AssociatedEmptyRoom"]
-er_path = BIDS_ROOT / er_relpath
+er_path = dirs.bids_root / er_relpath
 
 er_raw = read_raw_fif(er_path, preload=True)
 

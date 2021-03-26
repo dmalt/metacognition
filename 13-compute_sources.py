@@ -13,14 +13,7 @@ from mne.minimum_norm import (
     read_inverse_operator,
 )
 
-from config import (
-    SUBJECTS_DIR,
-    config_sources,
-    SOURCES_DIR,
-    bp_fwd,
-    bp_epochs,
-    bp_inv,
-)
+from config import dirs, config_sources, bp_fwd, bp_epochs, bp_inv
 from utils import setup_logging
 
 logger = setup_logging(__file__)
@@ -74,7 +67,7 @@ stcs_high_base = compute_source_psd_epochs(
     epochs_base["high"], inverse_operator, fmin=2, fmax=30, lambda2=2
 )
 
-src_path = SUBJECTS_DIR / "fsaverage/bem/fsaverage-oct-6-src.fif"
+src_path = dirs.subjects / "fsaverage/bem/fsaverage-oct-6-src.fif"
 src = read_source_spaces(src_path)
 fsave_vertices = [s["vertno"] for s in src]
 
@@ -82,9 +75,9 @@ morph = compute_source_morph(
     src=inverse_operator["src"],
     subject_to="fsaverage",
     spacing=fsave_vertices,
-    subjects_dir=SUBJECTS_DIR,
+    subjects_dir=dirs.subjects,
 )
-subj_dir = SOURCES_DIR / f"sub-{subj}"
+subj_dir = dirs.sources / f"sub-{subj}"
 subj_dir.mkdir(exist_ok=True)
 
 for i, s in enumerate(stcs_high_act):
@@ -94,4 +87,4 @@ for i, s in enumerate(stcs_low_act):
     s /= stcs_low_base[i]
     morph.apply(s).save(subj_dir / f"sub-{subj}_cond-low_trial-{i}")
 
-# (sum(stcs_high_base) / len(stcs_high_base) / sum(stcs_low_base) * len(stcs_low_base)).plot(subjects_dir=SUBJECTS_DIR, hemi="both")
+# (sum(stcs_high_base) / len(stcs_high_base) / sum(stcs_low_base) * len(stcs_low_base)).plot(subjects_dir=dirs.subjects, hemi="both")

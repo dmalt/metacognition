@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 
 from mne.gui import coregistration
 
-from config import SUBJECTS_DIR, bp_root, bp_trans
+from config import dirs, bp_root, bp_trans
 
 parser = ArgumentParser(description=__doc__)
 parser.add_argument("subject", help="subject id")
@@ -19,7 +19,7 @@ trans_path = trans_path if trans_path.exists() else None
 
 coregistration(
     subject=f"sub-{subj}",
-    subjects_dir=SUBJECTS_DIR,
+    subjects_dir=dirs.subjects,
     inst=info_src,
     trans=trans_path,
 )

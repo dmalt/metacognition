@@ -2,7 +2,7 @@
 import sys
 import json
 
-from config import bp_root_json, bp_root, BIDS_ROOT
+from config import bp_root_json, bp_root, dirs
 from dataset_specific_utils import parse_args
 from utils import setup_logging
 
@@ -18,7 +18,7 @@ with open(json_path, "r") as f:
     json_dict = json.load(f)
 
 bp_er = raw_bp.find_empty_room()
-associated_er_path = bp_er.fpath.relative_to(BIDS_ROOT)
+associated_er_path = bp_er.fpath.relative_to(dirs.bids_root)
 logger.info(f"Setting AssociatedEmptyRoom to {associated_er_path}")
 json_dict["AssociatedEmptyRoom"] = str(associated_er_path)
 

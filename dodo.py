@@ -4,7 +4,7 @@ from warnings import catch_warnings, simplefilter
 from doit.tools import config_changed
 from mne_bids import make_dataset_description
 from config import (
-    BIDS_ROOT,
+    dirs,
     DATASET_NAME,
     AUTHORS,
     subjects,
@@ -30,8 +30,6 @@ from config import (
     concat_config,
     ica_config,
     epochs_config,
-    SUBJECTS_DIR,
-    SOURCES_DIR,
     fsf_config,
     fwd_config,
     tfr_config,
@@ -62,7 +60,7 @@ def task_make_dataset_description():
                 make_dataset_description,
                 [],
                 {
-                    "path": BIDS_ROOT,
+                    "path": dirs.bids_root,
                     "name": DATASET_NAME,
                     "authors": AUTHORS,
                     "overwrite": True,
@@ -260,9 +258,9 @@ def task_freesurfer():
             file_dep=[bp_anat],
             actions=[
                 f"recon-all -i {anat} -s sub-{subj} -all -sd"
-                f" {SUBJECTS_DIR} -parallel -openmp {fsf_config['openmp']}"
+                f" {dirs.subjects} -parallel -openmp {fsf_config['openmp']}"
             ],
-            targets=[SUBJECTS_DIR / f"sub-{subj}"],
+            targets=[dirs.subjects / f"sub-{subj}"],
             verbosity=2,
         )
 
@@ -274,12 +272,12 @@ def task_make_scalp_surfaces():
             name=subj,
             uptodate=[True],
             actions=[
-                f"mne make_scalp_surfaces -o -f -s {subj} -d {SUBJECTS_DIR}"
+                f"mne make_scalp_surfaces -o -f -s {subj} -d {dirs.subjects}"
             ],
             targets=[
-                SUBJECTS_DIR / subj / "bem" / f"{subj}-head-dense.fif",
-                SUBJECTS_DIR / subj / "bem" / f"{subj}-head-medium.fif",
-                SUBJECTS_DIR / subj / "bem" / f"{subj}-head-sparse.fif",
+                dirs.subjects / subj / "bem" / f"{subj}-head-dense.fif",
+                dirs.subjects / subj / "bem" / f"{subj}-head-medium.fif",
+                dirs.subjects / subj / "bem" / f"{subj}-head-sparse.fif",
             ],
         )
 
@@ -290,20 +288,20 @@ def task_make_bem_surfaces():
         yield dict(
             name=subj,
             uptodate=[True],
-            actions=[f"mne watershed_bem -o -s {subj} -d {SUBJECTS_DIR}"],
+            actions=[f"mne watershed_bem -o -s {subj} -d {dirs.subjects}"],
             targets=[
-                SUBJECTS_DIR / subj / "bem" / f"{subj}-head.fif",
-                SUBJECTS_DIR / subj / "bem" / "outer_skin.surf",
-                SUBJECTS_DIR / subj / "bem" / "inner_skull.surf",
-                SUBJECTS_DIR / subj / "bem" / "outer_skull.surf",
-                SUBJECTS_DIR / subj / "bem" / "brain.surf",
+                dirs.subjects / subj / "bem" / f"{subj}-head.fif",
+                dirs.subjects / subj / "bem" / "outer_skin.surf",
+                dirs.subjects / subj / "bem" / "inner_skull.surf",
+                dirs.subjects / subj / "bem" / "outer_skull.surf",
+                dirs.subjects / subj / "bem" / "brain.surf",
             ],
         )
 
 
 def task_coregister():
     for subj in subjects:
-        prefix = SUBJECTS_DIR / f"sub-{subj}" / "bem"
+        prefix = dirs.subjects / f"sub-{subj}" / "bem"
         yield dict(
             name=subj,
             file_dep=[
@@ -325,11 +323,11 @@ def task_compute_forward():
             uptodate=[config_changed(fwd_config)],
             file_dep=[
                 bp_trans.fpath(subject=subj),
-                SUBJECTS_DIR / subj_bids / "bem" / f"{subj_bids}-head.fif",
-                SUBJECTS_DIR / subj_bids / "bem" / "outer_skin.surf",
-                SUBJECTS_DIR / subj_bids / "bem" / "inner_skull.surf",
-                SUBJECTS_DIR / subj_bids / "bem" / "outer_skull.surf",
-                SUBJECTS_DIR / subj_bids / "bem" / "brain.surf",
+                dirs.subjects / subj_bids / "bem" / f"{subj_bids}-head.fif",
+                dirs.subjects / subj_bids / "bem" / "outer_skin.surf",
+                dirs.subjects / subj_bids / "bem" / "inner_skull.surf",
+                dirs.subjects / subj_bids / "bem" / "outer_skull.surf",
+                dirs.subjects / subj_bids / "bem" / "brain.surf",
             ],
             targets=[bp_fwd.fpath(subject=subj)],
             actions=[f"python 11-compute_forward.py {subj}"],
@@ -367,7 +365,7 @@ def task_compute_sources():
         yield dict(
             name=subj_bids,
             file_dep=[fwd_path, inv_path, epochs_path],
-            targets=[SOURCES_DIR / subj_bids],
+            targets=[dirs.sources / subj_bids],
             actions=[f"python {script} {subj}"],
             clean=True,
         )
@@ -411,14 +409,14 @@ def task_average_tfr():
 
 
 # def task_compute_sources():
-#     for subj_path in sorted(SUBJECTS_DIR.glob("sub-*")):
+#     for subj_path in sorted(dirs.subjects.glob("sub-*")):
 #         subj_id = subj_path.name
 #         yield dict(
 #             name=subj_id,
 #             file_dep=[
 #                 "compute_sources.py",
-#                 FORWARDS_DIR / f"sub-{subj_id}_spacing-{fwd_config['spacing']}-fwd.fif",
+#                 dirs.forwards / f"sub-{subj_id}_spacing-{fwd_config['spacing']}-fwd.fif",
 #             ],
-#             targets=[SUBJECTS_DIR / subj_id],
+#             targets=[dirs.subjects / subj_id],
 #             actions=[f"python compute_sources.py {subj_id}"],
 #         )

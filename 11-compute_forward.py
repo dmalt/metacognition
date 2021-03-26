@@ -9,7 +9,7 @@ from mne import (
     write_forward_solution
 )
 
-from config import SUBJECTS_DIR, bp_root, fwd_config, bp_trans, bp_fwd
+from config import dirs, bp_root, fwd_config, bp_trans, bp_fwd
 
 parser = ArgumentParser(description="compute forward modeel")
 parser.add_argument("subject", help="subject id")
@@ -22,14 +22,14 @@ src = setup_source_space(
     f"sub-{subj}",
     spacing=fwd_config["spacing"],
     add_dist="patch",
-    subjects_dir=SUBJECTS_DIR,
+    subjects_dir=dirs.subjects,
 )
 
 model = make_bem_model(
     subject=f"sub-{subj}",
     ico=fwd_config["ico"],
     conductivity=fwd_config["conductivity"],
-    subjects_dir=SUBJECTS_DIR,
+    subjects_dir=dirs.subjects,
 )
 bem = make_bem_solution(model)
 fwd = make_forward_solution(
