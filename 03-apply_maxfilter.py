@@ -77,6 +77,6 @@ if __name__ == "__main__":
     # output
     maxfilt = bp_maxfilt.fpath(subject=subj, task=task, run=run, session=ses)
 
-    maxfilt.parent.mkdir(exist_ok=True)
+    maxfilt.parent.mkdir(exist_ok=True, parents=True)
 
     apply_maxfilter(raw, bads, annot, maxfilt, subj == "emptyroom")

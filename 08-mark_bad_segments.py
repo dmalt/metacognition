@@ -28,7 +28,7 @@ def annotate_file(fif_file, annot_path):
     else:
         annotations = None
     annotations = inspect_fif(fif_file, annotations)
-    annotations.save(annot_path)
+    annotations.save(str(annot_path))  # str conversion required
 
 
 if __name__ == "__main__":
@@ -40,6 +40,6 @@ if __name__ == "__main__":
     # output
     annot = bp_annot_final.fpath(subject=subj, task=task)
 
-    annot.parent.mkdir(exist_ok=True)
+    annot.parent.mkdir(exist_ok=True, parents=True)
 
     annotate_file(cleaned_fif, annot)

@@ -127,6 +127,6 @@ if __name__ == "__main__":
     # output
     epochs = bp_epochs.fpath(subject=subj)
 
-    epochs.parent.mkdir(exist_ok=True)
+    epochs.parent.mkdir(exist_ok=True, parents=True)
 
     make_epochs(cleaned_fif, annot, beh, epochs)

@@ -31,7 +31,7 @@ if __name__ == "__main__":
     # output
     cleaned_fif = bp_ica.fpath(subject=subj, task=task)
 
-    cleaned_fif.parent.mkdir(exist_ok=True)
+    cleaned_fif.parent.mkdir(exist_ok=True, parents=True)
     # logger.info(f"Processing {args.path}")
     # print(f"Processing {args.path}")
     clean_fif(filt, ica_sol, ica_bads, cleaned_fif)

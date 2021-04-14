@@ -50,7 +50,7 @@ def annotate_fif(raw_path, bads_path, annot_path, is_emptyroom):
     bads, annotations = inspect_fif(raw_path, bads, annotations, is_emptyroom)
 
     write_bads(bads_path, bads)
-    annotations.save(annot_path)
+    annotations.save(str(annot_path))
 
 
 if __name__ == "__main__":

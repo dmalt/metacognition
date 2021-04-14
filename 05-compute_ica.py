@@ -53,6 +53,6 @@ if __name__ == "__main__":
     # output
     ica_sol = bp_ica_sol.fpath(subject=subj, task=task)
 
-    ica_sol.parent.mkdir(exist_ok=True)
+    ica_sol.parent.mkdir(exist_ok=True, parents=True)
 
     compute_ica(filt, ica_sol, task)

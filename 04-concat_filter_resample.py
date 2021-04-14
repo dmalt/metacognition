@@ -53,5 +53,5 @@ if __name__ == "__main__":
     else:
         maxfilt = bp_maxfilt_subj.fpath(run=run)
 
-    filt.parent.mkdir(exist_ok=True)
+    filt.parent.mkdir(exist_ok=True, parents=True)
     process_fif(maxfilt, filt, task == "questions")
