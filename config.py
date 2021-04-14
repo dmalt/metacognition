@@ -14,12 +14,12 @@ AUTHORS = (
     ],
 )
 
+# --------------------------- setup directories --------------------------- #
 dirs = SimpleNamespace()
-# setup BIDS root folder
-dirs.current = Path(__file__).resolve()
-dirs.bids_root = dirs.current.parent.parent
 
-# setup source data folder
+dirs.current = Path(__file__).resolve().parent
+dirs.bids_root = dirs.current.parent
+
 dirs.raw          = dirs.bids_root.parent / "raw"                   # noqa
 dirs.beh_raw      = dirs.raw / "behavioral_data"                    # noqa
 
@@ -42,9 +42,14 @@ dirs.tfr          = dirs.derivatives / "15-tfr"                     # noqa
 dirs.tfr_average  = dirs.derivatives / "16-average_tfr"             # noqa
 dirs.reports      = dirs.derivatives / "99-reports"                 # noqa
 
+for k, d in vars(dirs).items():
+    if k not in ("raw", "beh_raw", "bids_root"):
+        d.mkdir(exist_ok=True, parents=True)
+
 crosstalk_file = str(dirs.bids_root / "SSS_data" / "ct_sparse.fif")
 cal_file = str(dirs.bids_root / "SSS_data" / "sss_cal.dat")
 subj_ids_file = dirs.bids_root / "code" / "added_subjects.tsv"
+# ------------------------------------------------------------------------- #
 
 
 EVENTS_ID = {
