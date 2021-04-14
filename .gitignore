@@ -3,3 +3,4 @@ logs
 pics
 .ipynb_checkpoints
 .doit.db*
+cachedir
