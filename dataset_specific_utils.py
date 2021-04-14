@@ -49,7 +49,7 @@ def iter_files(subjects, runs_return="sep"):
                     yield (subj, task, ses)
         else:
             for task in subj_tasks[subj]:
-                if task == "questions":
+                if task == tasks[0]:
                     if runs_return == "sep":
                         for run in subj_runs[subj]:
                             yield (subj, task, run, None)

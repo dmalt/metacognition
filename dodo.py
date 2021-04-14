@@ -5,6 +5,7 @@ from doit.tools import config_changed
 from mne_bids import make_dataset_description
 from config import (
     dirs,
+    tasks,
     DATASET_NAME,
     AUTHORS,
     subjects,
@@ -145,7 +146,7 @@ def task_concat_filter_resample():
         bp_maxf_subj = bp_maxfilt.update(subject=subj, task=task, session=ses)
         filt = bp_filt.fpath(subject=subj, task=task, session=ses)
 
-        if task == "questions":
+        if task == tasks[0]:
             maxfilt = [bp_maxf_subj.fpath(run=r) for r in runs]
         else:
             maxfilt = [bp_maxf_subj.fpath(run=None)]
@@ -233,7 +234,7 @@ def task_make_epochs():
     """Create epochs ignoring bad segments"""
     script = "09-make_epochs.py"
     for subj, task, ses in iter_files(subjects, None):
-        if task in ("rest", "noise", "practice"):
+        if task in tasks[1:]:
             continue
         cleaned_fif = bp_ica.fpath(subject=subj, task=task)
         annot = bp_annot_final.fpath(subject=subj, task=task)

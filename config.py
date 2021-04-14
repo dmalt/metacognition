@@ -78,6 +78,9 @@ target_bands = {
     "beta": (13, 25),
 }
 
+tasks = ["go", "CE", "OE"]
+subj_tasks = defaultdict(lambda: tasks)
+
 # bp_template = BIDSPathTemplate(datatype=None, check=False, extension="fif")
 bp_root = BIDSPathTemplate(
     root=dirs.bids_root, datatype="meg", suffix="meg", extension=".fif",
@@ -166,7 +169,7 @@ bp_epochs = BIDSPathTemplate(
     template_vars=["subject"],
 )
 bp_beh = BIDSPathTemplate(
-    root=dirs.bids_root, datatype="beh", task="questions", suffix="behav", extension="tsv", # noqa
+    root=dirs.bids_root, datatype="beh", task=tasks[0], suffix="behav", extension="tsv", # noqa
     template_vars=["subject"]
 )
 epochs_config = dict(

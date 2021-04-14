@@ -10,6 +10,7 @@ from mne.io import read_raw_fif
 
 from config import (
     EVENTS_ID,
+    tasks,
     bp_ica,
     bp_annot_final,
     bp_epochs,
@@ -121,8 +122,8 @@ if __name__ == "__main__":
     subj = parser.parse_args().subject
 
     # input
-    cleaned_fif = bp_ica.fpath(subject=subj, task="questions")
-    annot = bp_annot_final.fpath(subject=subj, task="questions")
+    cleaned_fif = bp_ica.fpath(subject=subj, task=tasks[0])
+    annot = bp_annot_final.fpath(subject=subj, task=tasks[0])
     beh = bp_beh.fpath(subject=subj)
     # output
     epochs = bp_epochs.fpath(subject=subj)

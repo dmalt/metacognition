@@ -10,7 +10,7 @@ import warnings
 from mne.io import read_raw_fif
 from mne import concatenate_raws
 
-from config import concat_config, bp_maxfilt, bp_filt, subj_runs
+from config import concat_config, bp_maxfilt, bp_filt, subj_runs, tasks
 from utils import setup_logging
 from dataset_specific_utils import parse_args
 
@@ -41,7 +41,7 @@ def process_fif(src, dest, is_mult_runs):
 if __name__ == "__main__":
     args = parse_args(__doc__, args=sys.argv[1:], emptyroom=True)
     subj, task, run, ses = args.subject, args.task, args.run, args.session
-    run = 1 if args.task == "questions" else None
+    run = 1 if args.task == tasks[0] else None
 
     # input
     bp_maxfilt_subj = bp_maxfilt.update(subject=subj, task=task, session=ses)
