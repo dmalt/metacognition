@@ -40,7 +40,7 @@ def compute_ica(fif_path, ica_sol_path, task):
     )
     ica.save(ica_sol_path)
 
-    report_path = ica_sol_path.stem + ".html"
+    report_path = ica_sol_path.with_suffix(".html")
     generate_report(raw, ica, report_path)
 
 
