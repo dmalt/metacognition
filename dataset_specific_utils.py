@@ -14,6 +14,7 @@ from config import (
     subj_tasks,
     subj_runs,
     bp_epochs,
+    EVENTS_ID,
 )
 
 
@@ -133,19 +134,49 @@ def assemble_epochs(ep_type="answer", average=False):
     return X, y
 
 
-def get_confidence_level(confidence):
-    if confidence == 0:
-        confidence_lvl = "lowest"
-    elif 10 <= confidence <= 30:
-        confidence_lvl = "low"
-    elif 40 <= confidence <= 60:
-        confidence_lvl = "medium"
-    elif 70 <= confidence <= 90:
-        confidence_lvl = "high"
-    elif confidence == 100:
-        confidence_lvl = "highest"
-    elif pd.isnull(confidence):
-        confidence_lvl = "nan"
+def get_question_data(i_question, df):
+    row = df.loc[i_question]
+    try:
+        confidence = int(row["оценка"])
+    except ValueError:
+        confidence = np.nan
+    if row["ответ"] in ('1', '2', '3'):
+        is_correct = False
+    elif row["ответ"] == "c" or row["ответ"] == "с":
+        is_correct = True
     else:
-        raise ValueError(f"Bad confidence: {confidence}")
-    return confidence_lvl
+        is_correct = np.nan
+    try:
+        question_num = int(row["question№"])
+    except ValueError:
+        question_num = np.nan
+    return confidence, is_correct, question_num
+
+
+def get_events_metadata(events, beh_df):
+    """
+    Get behavioral metadata for each event
+
+    Since each question corresponds to multiple events, we need to assign
+    the same metadata to events within one question. Therefore we pick the next
+    question only when the new event is of "confidence" type
+    """
+    assert len(events[events[:, 2] == EVENTS_ID["answer"]]) == len(beh_df)
+    assert len(events[events[:, 2] == EVENTS_ID["fixcross"]]) == len(beh_df)
+    i_question = 0
+    beh_data = {"confidence": [], "is_correct": [], "question_num": []}
+    for i, ev in enumerate(events):
+        if i_question == 0 or ev[2] == EVENTS_ID["question/second"]:
+            confidence, is_correct, question_num = get_question_data(
+                i_question, beh_df
+            )
+        if ev[2] == EVENTS_ID["confidence"]:
+            i_question += 1
+        beh_data["confidence"].append(confidence)
+        beh_data["is_correct"].append(is_correct)
+        beh_data["question_num"].append(question_num)
+
+    metadata = pd.DataFrame(beh_data)
+    return metadata
+
+
