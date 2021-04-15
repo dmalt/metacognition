@@ -288,10 +288,6 @@ all_subjects = [
 bad_subjects = ["02", "20", "07"]
 subjects = [s for s in all_subjects if s not in bad_subjects]
 
-tasks = ["questions", "rest", "practice"]
-subj_tasks = defaultdict(lambda: tasks)
-subj_tasks["01"] = ["questions", "rest"]
-subj_tasks["20"] = ["questions", "practice"]
 
 runs = ["01", "02", "03"]
 subj_runs = defaultdict(lambda: runs)
