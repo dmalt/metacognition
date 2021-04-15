@@ -26,7 +26,7 @@ if __name__ == "__main__":
     subj, task = args.subject, args.task
 
     # input
-    filt = bp_filt.fpath(subject=subj, task=task)
+    filt = bp_filt.fpath(subject=subj, task=task, session=None)
     ica_sol = bp_ica_sol.fpath(subject=subj, task=task)
     # output
     ica_bads = bp_ica_bads.fpath(subject=subj, task=task)
