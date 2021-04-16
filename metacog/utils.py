@@ -17,6 +17,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+from metacog.paths import dirs
+
 
 def bids_from_path(path: Path):
     bids_path_kwargs = {}
@@ -109,7 +111,7 @@ def setup_logging(script_name):
     """Save mne-python log to a file in logs folder"""
     log_basename = Path(script_name).stem
     log_fname = log_basename + ".log"
-    log_savepath = (Path("logs")) / log_fname
+    log_savepath = (dirs.logs) / log_fname
 
     logger = getLogger(log_basename)
     logger.setLevel(logging.INFO)

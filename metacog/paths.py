@@ -13,6 +13,7 @@ dirs.bids_root = Path(BIDS_ROOT)
 
 dirs.raw          = dirs.bids_root.parent / "raw"                   # noqa
 dirs.beh_raw      = dirs.raw / "behavioral_data"                    # noqa
+dirs.logs         = dirs.current / "logs"                           # noqa
 
 dirs.derivatives  = dirs.bids_root   / "derivatives"                # noqa
 dirs.hp           = dirs.derivatives / "01-head_positon"            # noqa
