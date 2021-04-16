@@ -234,7 +234,7 @@ def task_make_epochs():
     """Create epochs ignoring bad segments"""
     script = "preproc/09-make_epochs.py"
     for subj, task, ses in iter_files(subjects, None):
-        if task in subj_tasks['subj'][1:]:
+        if task in subj_tasks[subj][1:]:
             continue
         cleaned_fif = bp_ica.fpath(subject=subj, task=task)
         annot = bp_annot_final.fpath(subject=subj, task=task)
