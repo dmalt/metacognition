@@ -111,7 +111,7 @@ bp_annot_final = BIDSPathTemplate(
 
 # ------------------------------ 09-make_epochs ----------------------------- #
 bp_epochs = BIDSPathTemplate(
-    root=dirs.epochs, processing="ica", task="go", suffix="epo", extension="fif", # noqa
+    root=dirs.epochs, processing="ica", task=tasks[0], suffix="epo", extension="fif", # noqa
     template_vars=["subject"],
 )
 bp_beh = BIDSPathTemplate(

@@ -4,7 +4,7 @@ from warnings import catch_warnings, simplefilter
 from doit.tools import config_changed
 from mne_bids import make_dataset_description
 from metacog.config import (
-    tasks,
+    subj_tasks,
     DATASET_NAME,
     AUTHORS,
     subjects,
@@ -146,7 +146,7 @@ def task_concat_filter_resample():
         bp_maxf_subj = bp_maxfilt.update(subject=subj, task=task, session=ses)
         filt = bp_filt.fpath(subject=subj, task=task, session=ses)
 
-        if task == tasks[0]:
+        if task == subj_tasks[subj][0]:
             maxfilt = [bp_maxf_subj.fpath(run=r) for r in runs]
         else:
             maxfilt = [bp_maxf_subj.fpath(run=None)]
@@ -234,7 +234,7 @@ def task_make_epochs():
     """Create epochs ignoring bad segments"""
     script = "preproc/09-make_epochs.py"
     for subj, task, ses in iter_files(subjects, None):
-        if task in tasks[1:]:
+        if task in subj_tasks['subj'][1:]:
             continue
         cleaned_fif = bp_ica.fpath(subject=subj, task=task)
         annot = bp_annot_final.fpath(subject=subj, task=task)
