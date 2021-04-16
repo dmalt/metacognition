@@ -3,14 +3,23 @@ from warnings import catch_warnings, simplefilter
 
 from doit.tools import config_changed
 from mne_bids import make_dataset_description
-from config import (
-    dirs,
+from metacog.config import (
     tasks,
     DATASET_NAME,
     AUTHORS,
     subjects,
+    maxfilt_config,
+    concat_config,
+    ica_config,
+    epochs_config,
+    fsf_config,
+    fwd_config,
+    tfr_config,
+    target_bands,
+)
+from metacog.paths import (
+    dirs,
     bp_root,
-    bp_root_json,
     bp_headpos,
     bp_bads,
     bp_annot,
@@ -27,15 +36,7 @@ from config import (
     bp_fwd,
     bp_inv,
     bp_tfr,
-    maxfilt_config,
-    concat_config,
-    ica_config,
-    epochs_config,
-    fsf_config,
-    fwd_config,
-    tfr_config,
-    target_bands,
-    bp_tfr_av
+    bp_tfr_av,
 )
 
 from dataset_specific_utils import iter_files
@@ -72,23 +73,23 @@ def task_make_dataset_description():
     }
 
 
-def task_add_associated_emptyrooms():
-    """Add emptyroom path to sidecar json"""
-    script = "add_associated_emptyroom.py"
-    for subj, task, run, _ in iter_files(subjects):
-        raw = bp_root.fpath(subject=subj, task=task, run=run, session=None)
-        json = bp_root_json.fpath(subject=subj, task=task, run=run)
-        yield dict(
-            name=raw.name,
-            file_dep=[raw],
-            actions=[f"python {script} {subj} {task} -r {run}"],
-            targets=[json],
-        )
+# def task_add_associated_emptyrooms():
+#     """Add emptyroom path to sidecar json"""
+#     script = "add_associated_emptyroom.py"
+#     for subj, task, run, _ in iter_files(subjects):
+#         raw = bp_root.fpath(subject=subj, task=task, run=run, session=None)
+#         json_path = bp_root_json.fpath(subject=subj, task=task, run=run)
+#         yield dict(
+#             name=raw.name,
+#             file_dep=[raw],
+#             actions=[f"python {script} {subj} {task} -r {run}"],
+#             targets=[json_path],
+#         )
 
 
 def task_compute_head_position():
     """Compute head position for maxfilter"""
-    script = "01-compute_head_pos.py"
+    script = "preproc/01-compute_head_pos.py"
     for subj, task, run, ses in iter_files(subjects):
         raw = bp_root.fpath(subject=subj, task=task, run=run, session=ses)
         hp = bp_headpos.fpath(subject=subj, task=task, run=run)
@@ -100,10 +101,10 @@ def task_compute_head_position():
         )
 
 
-@disable
+# @disable
 def task_mark_bads_maxfilter():
     """Manually mark bad channels and segments and for maxfilter"""
-    script = "02-mark_bads_maxfilter.py"
+    script = "preproc/02-mark_bads_maxfilter.py"
     for subj, task, run, ses in iter_files(["emptyroom"] + subjects):
         raw = bp_root.fpath(subject=subj, task=task, run=run, session=ses)
         bads = bp_bads.fpath(subject=subj, task=task, run=run, session=ses)
@@ -118,7 +119,7 @@ def task_mark_bads_maxfilter():
 
 def task_apply_maxfilter():
     """Apply maxfilter to raw data; interpolate bad channels in process"""
-    script = "03-apply_maxfilter.py"
+    script = "preproc/03-apply_maxfilter.py"
     for subj, task, run, ses in iter_files(["emptyroom"] + subjects):
         raw = bp_root.fpath(subject=subj, task=task, run=run, session=ses)
         bads = bp_bads.fpath(subject=subj, task=task, run=run, session=ses)
@@ -137,10 +138,9 @@ def task_apply_maxfilter():
         )
 
 
-@disable
 def task_concat_filter_resample():
     """Concatenate runs, bandpass-filter and downsample data"""
-    script = "04-concat_filter_resample.py"
+    script = "preproc/04-concat_filter_resample.py"
     for subj, task, runs, ses in iter_files(["emptyroom"] + subjects, "joint"):
 
         bp_maxf_subj = bp_maxfilt.update(subject=subj, task=task, session=ses)
@@ -164,7 +164,7 @@ def task_concat_filter_resample():
 
 def task_compute_ica():
     """Compute ICA solution for filtered and resampled data. Skip emptyroom."""
-    script = "05-compute_ica.py"
+    script = "preproc/05-compute_ica.py"
     for subj, task, _ in iter_files(subjects, None):
         filt = bp_filt.fpath(subject=subj, task=task, session=None)
         ica_sol = bp_ica_sol.fpath(subject=subj, task=task)
@@ -181,7 +181,7 @@ def task_compute_ica():
 # @disable
 def task_inspect_ica():
     """Remove artifacts with precomputed ICA solution."""
-    script = "06-inspect_ica.py"
+    script = "preproc/06-inspect_ica.py"
     for subj, task, ses in iter_files(subjects, None):
         filt = bp_filt.fpath(subject=subj, task=task, session=None)
         ica_sol = bp_ica_sol.fpath(subject=subj, task=task)
@@ -200,7 +200,7 @@ def task_apply_ica():
     Remove bad ICA components from data
 
     """
-    script = "07-apply_ica.py"
+    script = "preproc/07-apply_ica.py"
     for subj, task, ses in iter_files(subjects, None):
         filt = bp_filt.fpath(subject=subj, task=task, session=None)
         ica_sol = bp_ica_sol.fpath(subject=subj, task=task)
@@ -218,7 +218,7 @@ def task_apply_ica():
 
 def task_mark_bad_segments():
     """Manually mark bad segments after ICA"""
-    script = "08-mark_bad_segments.py"
+    script = "preproc/08-mark_bad_segments.py"
     for subj, task, ses in iter_files(subjects, None):
         cleaned_fif = bp_ica.fpath(subject=subj, task=task)
         annot = bp_annot_final.fpath(subject=subj, task=task)
@@ -232,7 +232,7 @@ def task_mark_bad_segments():
 
 def task_make_epochs():
     """Create epochs ignoring bad segments"""
-    script = "09-make_epochs.py"
+    script = "preproc/09-make_epochs.py"
     for subj, task, ses in iter_files(subjects, None):
         if task in tasks[1:]:
             continue
@@ -335,28 +335,28 @@ def task_compute_forward():
         )
 
 
-def task_compute_inverse():
-    """Compute inverse solution"""
-    script = "12-compute_inverse.py"
-    for subj in subjects:
-        subj_bids = f"sub-{subj}"
-        with catch_warnings():
-            simplefilter("ignore")
-            json_path = bp_root_json.fpath(subject=subj, task="rest", run=None)
-            with open(json_path, "r") as f:
-                er_relpath = json.load(f)["AssociatedEmptyRoom"]
-            er_path = BIDS_ROOT / er_relpath
-        yield dict(
-            name=subj_bids,
-            file_dep=[bp_fwd.fpath(subject=subj), er_path],
-            targets=[bp_inv.fpath(subject=subj)],
-            actions=[f"python {script} {subj}"],
-        )
+# def task_compute_inverse():
+#     """Compute inverse solution"""
+#     script = "preproc/12-compute_inverse.py"
+#     for subj in subjects:
+#         subj_bids = f"sub-{subj}"
+#         with catch_warnings():
+#             simplefilter("ignore")
+#             json_path = bp_root_json.fpath(subject=subj, task="rest", run=None)
+#             with open(json_path, "r") as f:
+#                 er_relpath = json.load(f)["AssociatedEmptyRoom"]
+#             er_path = dirs.bids_root / er_relpath
+#         yield dict(
+#             name=subj_bids,
+#             file_dep=[bp_fwd.fpath(subject=subj), er_path],
+#             targets=[bp_inv.fpath(subject=subj)],
+#             actions=[f"python {script} {subj}"],
+#         )
 
 
 def task_compute_sources():
     """Project epochs to source space"""
-    script = "13-compute_sources.py"
+    script = "preproc/13-compute_sources.py"
     for subj in subjects:
         subj_bids = f"sub-{subj}"
         fwd_path = bp_fwd.fpath(subject=subj)
@@ -374,7 +374,7 @@ def task_compute_sources():
 
 def task_compute_tfr_epochs():
     """Compute time-frequency for epochs"""
-    script = "15-compute_tfr_epochs.py"
+    script = "preproc/15-compute_tfr_epochs.py"
     for subj in subjects:
         subj_bids = f"sub-{subj}"
         epochs_path = bp_epochs.fpath(subject=subj)
@@ -392,7 +392,7 @@ def task_compute_tfr_epochs():
 
 def task_average_tfr():
     """Compute inverse solution"""
-    script = "16-average_tfr.py"
+    script = "preproc/16-average_tfr.py"
     for subj in subjects:
         subj_bids = f"sub-{subj}"
         tfr_path = bp_tfr.fpath(subject=subj)

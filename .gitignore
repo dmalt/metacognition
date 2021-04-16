@@ -4,3 +4,4 @@ pics
 .ipynb_checkpoints
 .doit.db*
 cachedir
+*.egg-info

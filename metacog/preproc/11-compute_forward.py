@@ -9,7 +9,8 @@ from mne import (
     write_forward_solution
 )
 
-from config import dirs, bp_root, fwd_config, bp_trans, bp_fwd
+from metacog.paths import dirs, bp_root, bp_trans, bp_fwd
+from metacog.config import fwd_config
 
 parser = ArgumentParser(description="compute forward modeel")
 parser.add_argument("subject", help="subject id")

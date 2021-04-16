@@ -13,7 +13,7 @@ memory = Memory(location, verbose=0)
 
 @memory.cache
 def load_data(band):
-    band = "alpha"
+    band = "beta"
     dfs = []
     data = []
     for subj in subjects:
@@ -39,7 +39,7 @@ def make_cumulative_df(dfs, data, ch_ind, time_ind):
 
 
 # subjects = ["04", "05"]
-band = "alpha"
+band = "beta"
 time_ind = 1
 ch_ind = 1
 

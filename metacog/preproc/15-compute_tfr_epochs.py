@@ -5,8 +5,9 @@ import numpy as np
 from mne import read_epochs
 from mne.time_frequency import tfr_morlet
 
-from config import bp_epochs, bp_tfr, tfr_config
-from utils import setup_logging
+from metacog.paths import bp_epochs, bp_tfr
+from metacog.config import tfr_config
+from metacog.utils import setup_logging
 
 logger = setup_logging(__file__)
 

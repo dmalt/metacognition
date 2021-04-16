@@ -4,9 +4,9 @@ import sys
 from mne import read_annotations
 from mne.io import read_raw_fif
 
-from utils import setup_logging
-from dataset_specific_utils import parse_args
-from config import bp_ica, bp_annot_final
+from metacog.utils import setup_logging
+from metacog.dataset_specific_utils import parse_args
+from metacog.paths import bp_ica, bp_annot_final
 
 logger = setup_logging(__file__)
 

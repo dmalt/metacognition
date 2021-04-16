@@ -14,9 +14,9 @@ from mne.chpi import (
 )
 from mne.io import read_raw_fif
 
-from config import bp_root, bp_headpos
-from utils import setup_logging
-from dataset_specific_utils import parse_args
+from metacog.paths import bp_root, bp_headpos
+from metacog.utils import setup_logging
+from metacog.dataset_specific_utils import parse_args
 
 logger = setup_logging(__file__)
 

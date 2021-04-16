@@ -15,18 +15,17 @@ from mne import read_annotations
 from mne.preprocessing import maxwell_filter
 from mne.channels import fix_mag_coil_types
 
-
-from config import (
+from metacog.config import maxfilt_config
+from metacog.paths import (
     crosstalk_file,
     cal_file,
-    maxfilt_config,
     bp_root,
     bp_bads,
     bp_annot,
     bp_maxfilt,
 )
-from utils import setup_logging
-from dataset_specific_utils import parse_args
+from metacog.utils import setup_logging
+from metacog.dataset_specific_utils import parse_args
 
 logger = setup_logging(__file__)
 

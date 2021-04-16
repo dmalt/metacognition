@@ -12,17 +12,10 @@ import pandas as pd
 from mne import Epochs, find_events, read_annotations
 from mne.io import read_raw_fif
 
-from config import (
-    EVENTS_ID,
-    tasks,
-    bp_ica,
-    bp_annot_final,
-    bp_epochs,
-    bp_beh,
-    epochs_config,
-)
-from utils import setup_logging
-from dataset_specific_utils import get_events_metadata
+from metacog.paths import bp_ica, bp_annot_final, bp_epochs, bp_beh
+from metacog.config import EVENTS_ID, tasks, epochs_config
+from metacog.utils import setup_logging
+from metacog.dataset_specific_utils import get_events_metadata
 
 logger = setup_logging(__file__)
 

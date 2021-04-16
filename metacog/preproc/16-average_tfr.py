@@ -2,7 +2,9 @@
 from argparse import ArgumentParser
 import numpy as np
 from mne.time_frequency import read_tfrs
-from config import target_bands, bp_tfr, bp_tfr_av
+
+from metacog.paths import bp_tfr, bp_tfr_av
+from metacog.config import target_bands
 
 
 parser = ArgumentParser(__doc__)

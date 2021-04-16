@@ -13,8 +13,9 @@ from mne.minimum_norm import (
     read_inverse_operator,
 )
 
-from config import dirs, config_sources, bp_fwd, bp_epochs, bp_inv
-from utils import setup_logging
+from metacog.paths import dirs, bp_fwd, bp_epochs, bp_inv
+from metacog.config import config_sources
+from metacog.utils import setup_logging
 
 logger = setup_logging(__file__)
 

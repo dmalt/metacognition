@@ -4,9 +4,9 @@ import sys
 from mne.io import read_raw_fif
 from mne.preprocessing import read_ica
 
-from config import bp_ica_sol, bp_filt, bp_ica_bads
-from utils import setup_logging, read_ica_bads, write_ica_bads
-from dataset_specific_utils import parse_args
+from metacog.paths import bp_ica_sol, bp_filt, bp_ica_bads
+from metacog.utils import setup_logging, read_ica_bads, write_ica_bads
+from metacog.dataset_specific_utils import parse_args
 
 logger = setup_logging(__file__)
 

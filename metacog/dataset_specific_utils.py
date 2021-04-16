@@ -6,15 +6,9 @@ from mne import read_epochs
 from tqdm import tqdm
 import pandas as pd
 
-from config import (
-    tasks,
-    runs,
-    subjects,
-    er_sessions,
-    subj_tasks,
-    subj_runs,
-    bp_epochs,
-    EVENTS_ID,
+from metacog.paths import bp_epochs
+from metacog.config import (
+    tasks, runs, subjects, er_sessions, subj_tasks, subj_runs, EVENTS_ID,
 )
 
 
@@ -35,7 +29,7 @@ def iter_files(subjects, runs_return="sep"):
 
     Yields
     ------
-    (subj, task, run, ses) tuple if runs_renturn == "sep",
+    (subj, task, run, ses) tuple if runs_return == "sep",
     (subj, task, list of subj runs, ses) tuple if runs_renturn == "joint",
     (subj, task, ses) tuple if runs_renturn == None
 

@@ -6,7 +6,7 @@ from mne import set_log_level
 from mne.stats import spatio_temporal_cluster_test
 from mne.channels import find_ch_adjacency
 
-from config import bp_epochs
+from paths import bp_epochs
 from utils import plot_temporal_clusters
 from dataset_specific_utils import (
     assemble_epochs,

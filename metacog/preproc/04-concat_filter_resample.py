@@ -10,9 +10,11 @@ import warnings
 from mne.io import read_raw_fif
 from mne import concatenate_raws
 
-from config import concat_config, bp_maxfilt, bp_filt, subj_runs, tasks
-from utils import setup_logging
-from dataset_specific_utils import parse_args
+from metacog.paths import bp_maxfilt, bp_filt
+from metacog.config import concat_config, subj_runs, tasks
+
+from metacog.utils import setup_logging
+from metacog.dataset_specific_utils import parse_args
 
 logger = setup_logging(__file__)
 warnings.simplefilter("ignore", RuntimeWarning)

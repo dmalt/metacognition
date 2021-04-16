@@ -5,9 +5,9 @@ from mne.io import read_raw_fif
 from mne.chpi import filter_chpi
 from mne import read_annotations
 
-from utils import setup_logging
-from dataset_specific_utils import parse_args
-from config import bp_root, bp_bads, bp_annot
+from metacog.utils import setup_logging
+from metacog.dataset_specific_utils import parse_args
+from metacog.paths import bp_root, bp_bads, bp_annot
 
 logger = setup_logging(__file__)
 

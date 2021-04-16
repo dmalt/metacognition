@@ -3,7 +3,7 @@ from argparse import ArgumentParser
 
 from mne.gui import coregistration
 
-from config import dirs, bp_root, bp_trans
+from metacog.paths import dirs, bp_root, bp_trans
 
 parser = ArgumentParser(description=__doc__)
 parser.add_argument("subject", help="subject id")

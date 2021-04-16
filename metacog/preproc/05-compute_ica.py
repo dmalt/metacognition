@@ -8,9 +8,10 @@ from mne.preprocessing import ICA
 from mne.io import read_raw_fif
 from mne import Report
 
-from config import ica_config, bp_filt, bp_ica_sol
-from utils import setup_logging
-from dataset_specific_utils import parse_args
+from metacog.paths import bp_filt, bp_ica_sol
+from metacog.config import ica_config
+from metacog.utils import setup_logging
+from metacog.dataset_specific_utils import parse_args
 
 logger = setup_logging(__file__)
 

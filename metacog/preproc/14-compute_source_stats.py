@@ -4,7 +4,8 @@ from mne.stats import (
     summarize_clusters_stc, spatio_temporal_cluster_test, ttest_ind_no_p,
 )
 
-from config import dirs, subjects
+from metacog.paths import dirs
+from metacog.config import subjects
 
 # stcs_low = []
 # stcs_high = []

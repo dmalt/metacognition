@@ -7,7 +7,7 @@ from mne.preprocessing import read_ica
 from mne.io import read_raw_fif, read_info
 from mne.minimum_norm import make_inverse_operator, write_inverse_operator
 
-from config import (
+from metacog.paths import (
     bp_fwd,
     bp_epochs,
     bp_inv,
@@ -16,7 +16,7 @@ from config import (
     bp_ica_sol,
     bp_ica_bads,
 )
-from utils import setup_logging, read_ica_bads
+from metacog.utils import setup_logging, read_ica_bads
 
 logger = setup_logging(__file__)
 

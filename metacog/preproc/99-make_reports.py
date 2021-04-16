@@ -15,7 +15,7 @@ from mne.io import read_raw_fif
 from mne.chpi import read_head_pos, filter_chpi
 from mne.viz import plot_head_positions
 
-from config import dirs
+from paths import dirs
 from utils import BidsFname
 
 
