@@ -8,7 +8,7 @@ import pandas as pd
 
 from metacog.paths import bp_epochs
 from metacog.config import (
-    tasks, runs, subjects, er_sessions, subj_tasks, subj_runs, EVENTS_ID,
+    subjects, er_sessions, subj_tasks, subj_runs, EVENTS_ID,
 )
 
 
@@ -44,7 +44,7 @@ def iter_files(subjects, runs_return="sep"):
                     yield (subj, task, ses)
         else:
             for task in subj_tasks[subj]:
-                if task == tasks[0]:
+                if task == subj_tasks[subj][0]:
                     if runs_return == "sep":
                         for run in subj_runs[subj]:
                             yield (subj, task, run, None)
@@ -61,16 +61,20 @@ def iter_files(subjects, runs_return="sep"):
 
 def parse_args(description, args, emptyroom=False):
     parser = ArgumentParser(description=description)
+    tasks_cat = {t for s in subjects for t in subj_tasks[s]}
+    runs_cat = {t for s in subjects for t in subj_runs[s]}
     if emptyroom:
         subjects.append("emptyroom")
-        tasks.append("noise")
+        tasks_cat.add("noise")
         parser.add_argument(
             "--session", "-s", default="None", choices=er_sessions + ["None"]
         )
 
     parser.add_argument("subject", choices=subjects)
-    parser.add_argument("task", choices=tasks)
-    parser.add_argument("--run", "-r", choices=runs + ["None"], default="None")
+    parser.add_argument("task", choices=tasks_cat)
+    parser.add_argument(
+        "--run", "-r", choices=runs_cat | {"None"}, default="None"
+    )
     args = parser.parse_args(args)
 
     if emptyroom:
