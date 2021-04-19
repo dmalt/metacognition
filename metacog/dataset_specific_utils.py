@@ -8,7 +8,11 @@ import pandas as pd
 
 from metacog.paths import bp_epochs
 from metacog.config import (
-    subjects, er_sessions, subj_tasks, subj_runs, EVENTS_ID,
+    subjects,
+    er_sessions,
+    subj_tasks,
+    subj_runs,
+    EVENTS_ID,
 )
 
 
@@ -138,7 +142,7 @@ def get_question_data(i_question, df):
         confidence = int(row["оценка"])
     except ValueError:
         confidence = np.nan
-    if row["ответ"] in ('1', '2', '3'):
+    if row["ответ"] in ("1", "2", "3"):
         is_correct = False
     elif row["ответ"] == "c" or row["ответ"] == "с":
         is_correct = True
@@ -176,5 +180,3 @@ def get_events_metadata(events, beh_df):
 
     metadata = pd.DataFrame(beh_data)
     return metadata
-
-
