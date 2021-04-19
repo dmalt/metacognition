@@ -20,6 +20,7 @@ from metacog.config import (
 from metacog.paths import (
     dirs,
     bp_root,
+    bp_root_json,
     bp_headpos,
     bp_bads,
     bp_annot,
@@ -73,18 +74,18 @@ def task_make_dataset_description():
     }
 
 
-# def task_add_associated_emptyrooms():
-#     """Add emptyroom path to sidecar json"""
-#     script = "add_associated_emptyroom.py"
-#     for subj, task, run, _ in iter_files(subjects):
-#         raw = bp_root.fpath(subject=subj, task=task, run=run, session=None)
-#         json_path = bp_root_json.fpath(subject=subj, task=task, run=run)
-#         yield dict(
-#             name=raw.name,
-#             file_dep=[raw],
-#             actions=[f"python {script} {subj} {task} -r {run}"],
-#             targets=[json_path],
-#         )
+def task_add_associated_emptyrooms():
+    """Add emptyroom path to sidecar json"""
+    script = "add_associated_emptyroom.py"
+    for subj, task, run, _ in iter_files(subjects):
+        raw = bp_root.fpath(subject=subj, task=task, run=run, session=None)
+        json_path = bp_root_json.fpath(subject=subj, task=task, run=run)
+        yield dict(
+            name=raw.name,
+            file_dep=[raw],
+            actions=[f"python {script} {subj} {task} -r {run}"],
+            targets=[json_path],
+        )
 
 
 def task_compute_head_position():
