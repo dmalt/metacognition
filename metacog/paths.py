@@ -41,7 +41,6 @@ for k, d in vars(dirs).items():
 
 crosstalk_file = str(dirs.bids_root / "SSS_data" / "ct_sparse.fif")
 cal_file = str(dirs.bids_root / "SSS_data" / "sss_cal.dat")
-subj_ids_file = dirs.bids_root / "code" / "added_subjects.tsv"
 # --------------------------------------------------------------------------- #
 
 bp_root = BIDSPathTemplate(
@@ -159,11 +158,6 @@ bp_tfr = BIDSPathTemplate(
 #     root=dirs.tfr, processing="ica", suffix="itc", extension="h5", # noqa
 #     template_vars=["subject"],
 # )
-tfr_config = dict(
-    freqs=dict(start=1.0, stop=30., step=1.),
-    decim=4,
-    use_fft=True,
-)
 # --------------------------------------------------------------------------- #
 
 # ------------------------------- average_tfr ------------------------------- #
