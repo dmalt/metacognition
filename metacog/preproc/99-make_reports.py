@@ -15,8 +15,8 @@ from mne.io import read_raw_fif
 from mne.chpi import read_head_pos, filter_chpi
 from mne.viz import plot_head_positions
 
-from paths import dirs
-from utils import BidsFname
+from metacog.paths import dirs
+from metacog.utils import BidsFname
 
 
 set_log_level(verbose="ERROR")

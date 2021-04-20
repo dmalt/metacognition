@@ -5,7 +5,7 @@ import numpy as np
 from mne import read_epochs
 from mne.time_frequency import tfr_morlet
 
-from metacog.paths import bp_epochs, bp_tfr
+from metacog import bp
 from metacog.config import tfr_config
 from metacog.utils import setup_logging
 
@@ -16,13 +16,13 @@ parser.add_argument("subject", help="subject id")
 subj = parser.parse_args().subject
 
 # input
-ep_path = bp_epochs.fpath(subject=subj)
+ep_path = bp.epochs.fpath(subject=subj)
 # output
-tfr_path = bp_tfr.fpath(subject=subj)
-# itc_path_low = bp_itc.fpath(subject=subj, task="low")
+tfr_path = bp.tfr.fpath(subject=subj)
+# itc_path_low = bp.itc.fpath(subject=subj, task="low")
 
-# tfr_path_high = bp_tfr.fpath(subject=subj, task="high")
-# itc_path_high = bp_itc.fpath(subject=subj, task="high")
+# tfr_path_high = bp.tfr.fpath(subject=subj, task="high")
+# itc_path_high = bp.itc.fpath(subject=subj, task="high")
 
 ep = read_epochs(ep_path)
 

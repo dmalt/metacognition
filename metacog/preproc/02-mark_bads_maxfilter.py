@@ -5,9 +5,9 @@ from mne.io import read_raw_fif
 from mne.chpi import filter_chpi
 from mne import read_annotations
 
+from metacog import bp
 from metacog.utils import setup_logging
 from metacog.dataset_specific_utils import parse_args
-from metacog.paths import bp_root, bp_bads, bp_annot
 
 logger = setup_logging(__file__)
 
@@ -58,10 +58,10 @@ if __name__ == "__main__":
     subj, task, run, ses = args.subject, args.task, args.run, args.session
 
     # input
-    raw = bp_root.fpath(subject=subj, task=task, run=run, session=ses)
+    raw = bp.root.fpath(subject=subj, task=task, run=run, session=ses)
     # output
-    bads = bp_bads.fpath(subject=subj, task=task, run=run, session=ses)
-    annot = bp_annot.fpath(subject=subj, task=task, run=run, session=ses)
+    bads = bp.bads.fpath(subject=subj, task=task, run=run, session=ses)
+    annot = bp.annot.fpath(subject=subj, task=task, run=run, session=ses)
 
     bads.parent.mkdir(exist_ok=True)
 

@@ -4,7 +4,7 @@ import sys
 from mne.io import read_raw_fif
 from mne.preprocessing import read_ica
 
-from metacog.paths import bp_ica_sol, bp_filt, bp_ica_bads
+from metacog import bp
 from metacog.utils import setup_logging, read_ica_bads, write_ica_bads
 from metacog.dataset_specific_utils import parse_args
 
@@ -26,10 +26,10 @@ if __name__ == "__main__":
     subj, task = args.subject, args.task
 
     # input
-    filt = bp_filt.fpath(subject=subj, task=task, session=None)
-    ica_sol = bp_ica_sol.fpath(subject=subj, task=task)
+    filt = bp.filt.fpath(subject=subj, task=task, session=None)
+    ica_sol = bp.ica_sol.fpath(subject=subj, task=task)
     # output
-    ica_bads = bp_ica_bads.fpath(subject=subj, task=task)
+    ica_bads = bp.ica_bads.fpath(subject=subj, task=task)
 
     ica_bads.parent.mkdir(exist_ok=True)
     # logger.info(f"Processing {args.path}")

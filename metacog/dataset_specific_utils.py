@@ -6,7 +6,7 @@ from mne import read_epochs
 from tqdm import tqdm
 import pandas as pd
 
-from metacog.paths import bp_epochs
+from metacog import bp
 from metacog.config import (
     subjects,
     er_sessions,
@@ -110,7 +110,7 @@ def assemble_epochs(ep_type="answer", average=False):
     X = np.empty((0, n_channels, n_times))
     y = np.empty(0)
     for subj in tqdm(subjects, desc="Loading epochs"):
-        ep_path = bp_epochs.fpath(subject=subj)
+        ep_path = bp.epochs.fpath(subject=subj)
         ep = (
             read_epochs(ep_path)
             .interpolate_bads()

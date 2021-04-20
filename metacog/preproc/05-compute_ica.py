@@ -8,7 +8,7 @@ from mne.preprocessing import ICA
 from mne.io import read_raw_fif
 from mne import Report
 
-from metacog.paths import bp_filt, bp_ica_sol
+from metacog import bp
 from metacog.config import ica_config
 from metacog.utils import setup_logging
 from metacog.dataset_specific_utils import parse_args
@@ -50,9 +50,9 @@ if __name__ == "__main__":
     subj, task = args.subject, args.task
 
     # input
-    filt = bp_filt.fpath(subject=subj, task=task, session=None)
+    filt = bp.filt.fpath(subject=subj, task=task, session=None)
     # output
-    ica_sol = bp_ica_sol.fpath(subject=subj, task=task)
+    ica_sol = bp.ica_sol.fpath(subject=subj, task=task)
 
     ica_sol.parent.mkdir(exist_ok=True, parents=True)
 

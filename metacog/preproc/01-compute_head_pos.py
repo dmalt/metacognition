@@ -14,7 +14,7 @@ from mne.chpi import (
 )
 from mne.io import read_raw_fif
 
-from metacog.paths import bp_root, bp_headpos
+from metacog import bp
 from metacog.utils import setup_logging
 from metacog.dataset_specific_utils import parse_args
 
@@ -33,9 +33,9 @@ if __name__ == "__main__":
     subj, task, run = args.subject, args.task, args.run
 
     # input
-    raw = bp_root.fpath(subject=subj, task=task, run=run, session=None)
+    raw = bp.root.fpath(subject=subj, task=task, run=run, session=None)
     # output
-    headpos = bp_headpos.fpath(subject=subj, task=task, run=run)
+    headpos = bp.headpos.fpath(subject=subj, task=task, run=run)
 
     headpos.parent.mkdir(exist_ok=True)
     logger.info(f"Processing {raw.name} --> {headpos}")

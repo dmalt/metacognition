@@ -13,7 +13,8 @@ from mne.minimum_norm import (
     read_inverse_operator,
 )
 
-from metacog.paths import dirs, bp_fwd, bp_epochs, bp_inv
+from metacog import bp
+from metacog.paths import dirs
 from metacog.config import config_sources
 from metacog.utils import setup_logging
 
@@ -25,11 +26,11 @@ parser.add_argument("subject", help="subject id")
 args = parser.parse_args()
 subj = args.subject
 
-fwd_path = bp_fwd.fpath(subject=subj)
+fwd_path = bp.fwd.fpath(subject=subj)
 fwd = read_forward_solution(fwd_path)
-inv_path = bp_inv.fpath(subject=subj)
+inv_path = bp.inv.fpath(subject=subj)
 
-epochs_path = bp_epochs.fpath(subject=subj)
+epochs_path = bp.epochs.fpath(subject=subj)
 epochs = read_epochs(epochs_path)["answer"]
 inverse_operator = read_inverse_operator(inv_path)
 

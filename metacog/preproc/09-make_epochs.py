@@ -2,7 +2,7 @@
 Create epochs
 
 Remove bad segments based on annotations.
-Addimetadata from behavioral answers if provided.
+Add metadata from behavioral answers if provided.
 
 """
 from argparse import ArgumentParser
@@ -12,7 +12,7 @@ import pandas as pd
 from mne import Epochs, find_events, read_annotations
 from mne.io import read_raw_fif
 
-from metacog.paths import bp_ica, bp_annot_final, bp_epochs, bp_beh
+from metacog import bp
 from metacog.config import EVENTS_ID, tasks, epochs_config
 from metacog.utils import setup_logging
 from metacog.dataset_specific_utils import get_events_metadata
@@ -45,11 +45,11 @@ if __name__ == "__main__":
     subj = parser.parse_args().subject
 
     # input
-    cleaned_fif = bp_ica.fpath(subject=subj, task=tasks[0])
-    annot = bp_annot_final.fpath(subject=subj, task=tasks[0])
-    beh = bp_beh.fpath(subject=subj)
+    cleaned_fif = bp.ica.fpath(subject=subj, task=tasks[0])
+    annot = bp.annot_final.fpath(subject=subj, task=tasks[0])
+    beh = bp.beh.fpath(subject=subj)
     # output
-    epochs = bp_epochs.fpath(subject=subj)
+    epochs = bp.epochs.fpath(subject=subj)
 
     epochs.parent.mkdir(exist_ok=True, parents=True)
 

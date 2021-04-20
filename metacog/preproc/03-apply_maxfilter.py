@@ -15,15 +15,9 @@ from mne import read_annotations
 from mne.preprocessing import maxwell_filter
 from mne.channels import fix_mag_coil_types
 
+from metacog import bp
 from metacog.config import maxfilt_config
-from metacog.paths import (
-    crosstalk_file,
-    cal_file,
-    bp_root,
-    bp_bads,
-    bp_annot,
-    bp_maxfilt,
-)
+from metacog.paths import crosstalk_file, cal_file
 from metacog.utils import setup_logging
 from metacog.dataset_specific_utils import parse_args
 
@@ -70,11 +64,11 @@ if __name__ == "__main__":
     subj, task, run, ses = args.subject, args.task, args.run, args.session
 
     # input
-    raw = bp_root.fpath(subject=subj, task=task, run=run, session=ses)
-    bads = bp_bads.fpath(subject=subj, task=task, run=run, session=ses)
-    annot = bp_annot.fpath(subject=subj, task=task, run=run, session=ses)
+    raw = bp.root.fpath(subject=subj, task=task, run=run, session=ses)
+    bads = bp.bads.fpath(subject=subj, task=task, run=run, session=ses)
+    annot = bp.annot.fpath(subject=subj, task=task, run=run, session=ses)
     # output
-    maxfilt = bp_maxfilt.fpath(subject=subj, task=task, run=run, session=ses)
+    maxfilt = bp.maxfilt.fpath(subject=subj, task=task, run=run, session=ses)
 
     maxfilt.parent.mkdir(exist_ok=True, parents=True)
 

@@ -9,14 +9,15 @@ from mne import (
     write_forward_solution
 )
 
-from metacog.paths import dirs, bp_root, bp_trans, bp_fwd
+from metacog import bp
+from metacog.paths import dirs
 from metacog.config import fwd_config
 
 parser = ArgumentParser(description="compute forward modeel")
 parser.add_argument("subject", help="subject id")
 subj = parser.parse_args().subject
 
-info_path = bp_root.fpath(subject=subj, task="questions", run=1, session=None)
+info_path = bp.root.fpath(subject=subj, task="questions", run=1, session=None)
 info = read_info(info_path)
 
 src = setup_source_space(
@@ -35,7 +36,7 @@ model = make_bem_model(
 bem = make_bem_solution(model)
 fwd = make_forward_solution(
     info,
-    trans=bp_trans.fpath(subject=subj),
+    trans=bp.trans.fpath(subject=subj),
     src=src,
     bem=bem,
     meg=True,
@@ -45,6 +46,6 @@ fwd = make_forward_solution(
     verbose=True,
 )
 
-fwd_path = bp_fwd.fpath(subject=subj)
+fwd_path = bp.fwd.fpath(subject=subj)
 fwd_path.parent.mkdir(exist_ok=True)
 write_forward_solution(fwd_path, fwd=fwd, overwrite=True)

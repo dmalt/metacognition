@@ -3,6 +3,8 @@ from warnings import catch_warnings, simplefilter
 
 from doit.tools import config_changed
 from mne_bids import make_dataset_description
+
+from metacog import bp
 from metacog.config import (
     subj_tasks,
     DATASET_NAME,
@@ -17,32 +19,9 @@ from metacog.config import (
     tfr_config,
     target_bands,
 )
-from metacog.paths import (
-    dirs,
-    bp_root,
-    bp_root_json,
-    bp_headpos,
-    bp_bads,
-    bp_annot,
-    bp_maxfilt,
-    bp_filt,
-    bp_ica_sol,
-    bp_ica,
-    bp_ica_bads,
-    bp_annot_final,
-    bp_beh,
-    bp_epochs,
-    bp_anat,
-    bp_trans,
-    bp_fwd,
-    bp_inv,
-    bp_tfr,
-    bp_tfr_av,
-)
-
-from dataset_specific_utils import iter_files
-
-from utils import disable
+from metacog.paths import dirs
+from metacog.dataset_specific_utils import iter_files
+from metacog.utils import disable
 
 # DOIT_CONFIG = {
 #     "default_tasks": [
@@ -74,12 +53,13 @@ def task_make_dataset_description():
     }
 
 
+@disable
 def task_add_associated_emptyrooms():
     """Add emptyroom path to sidecar json"""
-    script = "add_associated_emptyroom.py"
+    script = "preproc/add_associated_emptyroom.py"
     for subj, task, run, _ in iter_files(subjects):
-        raw = bp_root.fpath(subject=subj, task=task, run=run, session=None)
-        json_path = bp_root_json.fpath(subject=subj, task=task, run=run)
+        raw = bp.root.fpath(subject=subj, task=task, run=run, session=None)
+        json_path = bp.root_json.fpath(subject=subj, task=task, run=run)
         yield dict(
             name=raw.name,
             file_dep=[raw],
@@ -92,8 +72,8 @@ def task_compute_head_position():
     """Compute head position for maxfilter"""
     script = "preproc/01-compute_head_pos.py"
     for subj, task, run, ses in iter_files(subjects):
-        raw = bp_root.fpath(subject=subj, task=task, run=run, session=ses)
-        hp = bp_headpos.fpath(subject=subj, task=task, run=run)
+        raw = bp.root.fpath(subject=subj, task=task, run=run, session=ses)
+        hp = bp.headpos.fpath(subject=subj, task=task, run=run)
         yield dict(
             name=raw.name,
             file_dep=[raw],
@@ -107,9 +87,9 @@ def task_mark_bads_maxfilter():
     """Manually mark bad channels and segments and for maxfilter"""
     script = "preproc/02-mark_bads_maxfilter.py"
     for subj, task, run, ses in iter_files(["emptyroom"] + subjects):
-        raw = bp_root.fpath(subject=subj, task=task, run=run, session=ses)
-        bads = bp_bads.fpath(subject=subj, task=task, run=run, session=ses)
-        annot = bp_annot.fpath(subject=subj, task=task, run=run, session=ses)
+        raw = bp.root.fpath(subject=subj, task=task, run=run, session=ses)
+        bads = bp.bads.fpath(subject=subj, task=task, run=run, session=ses)
+        annot = bp.annot.fpath(subject=subj, task=task, run=run, session=ses)
         yield dict(
             name=raw.name,
             file_dep=[raw],
@@ -122,10 +102,10 @@ def task_apply_maxfilter():
     """Apply maxfilter to raw data; interpolate bad channels in process"""
     script = "preproc/03-apply_maxfilter.py"
     for subj, task, run, ses in iter_files(["emptyroom"] + subjects):
-        raw = bp_root.fpath(subject=subj, task=task, run=run, session=ses)
-        bads = bp_bads.fpath(subject=subj, task=task, run=run, session=ses)
-        annot = bp_annot.fpath(subject=subj, task=task, run=run, session=ses)
-        maxfilt = bp_maxfilt.fpath(
+        raw = bp.root.fpath(subject=subj, task=task, run=run, session=ses)
+        bads = bp.bads.fpath(subject=subj, task=task, run=run, session=ses)
+        annot = bp.annot.fpath(subject=subj, task=task, run=run, session=ses)
+        maxfilt = bp.maxfilt.fpath(
             subject=subj, task=task, run=run, session=ses
         )
 
@@ -144,13 +124,13 @@ def task_concat_filter_resample():
     script = "preproc/04-concat_filter_resample.py"
     for subj, task, runs, ses in iter_files(["emptyroom"] + subjects, "joint"):
 
-        bp_maxf_subj = bp_maxfilt.update(subject=subj, task=task, session=ses)
-        filt = bp_filt.fpath(subject=subj, task=task, session=ses)
+        bp.maxf_subj = bp.maxfilt.update(subject=subj, task=task, session=ses)
+        filt = bp.filt.fpath(subject=subj, task=task, session=ses)
 
         if task == subj_tasks[subj][0]:
-            maxfilt = [bp_maxf_subj.fpath(run=r) for r in runs]
+            maxfilt = [bp.maxf_subj.fpath(run=r) for r in runs]
         else:
-            maxfilt = [bp_maxf_subj.fpath(run=None)]
+            maxfilt = [bp.maxf_subj.fpath(run=None)]
         name = maxfilt[0].name
 
         yield dict(
@@ -167,8 +147,8 @@ def task_compute_ica():
     """Compute ICA solution for filtered and resampled data. Skip emptyroom."""
     script = "preproc/05-compute_ica.py"
     for subj, task, _ in iter_files(subjects, None):
-        filt = bp_filt.fpath(subject=subj, task=task, session=None)
-        ica_sol = bp_ica_sol.fpath(subject=subj, task=task)
+        filt = bp.filt.fpath(subject=subj, task=task, session=None)
+        ica_sol = bp.ica_sol.fpath(subject=subj, task=task)
 
         yield dict(
             name=filt.name,
@@ -184,9 +164,9 @@ def task_inspect_ica():
     """Remove artifacts with precomputed ICA solution."""
     script = "preproc/06-inspect_ica.py"
     for subj, task, ses in iter_files(subjects, None):
-        filt = bp_filt.fpath(subject=subj, task=task, session=None)
-        ica_sol = bp_ica_sol.fpath(subject=subj, task=task)
-        ica_bads = bp_ica_bads.fpath(subject=subj, task=task)
+        filt = bp.filt.fpath(subject=subj, task=task, session=None)
+        ica_sol = bp.ica_sol.fpath(subject=subj, task=task)
+        ica_bads = bp.ica_bads.fpath(subject=subj, task=task)
 
         yield dict(
             name=filt.name,
@@ -203,10 +183,10 @@ def task_apply_ica():
     """
     script = "preproc/07-apply_ica.py"
     for subj, task, ses in iter_files(subjects, None):
-        filt = bp_filt.fpath(subject=subj, task=task, session=None)
-        ica_sol = bp_ica_sol.fpath(subject=subj, task=task)
-        ica_bads = bp_ica_bads.fpath(subject=subj, task=task)
-        cleaned_fif = bp_ica.fpath(subject=subj, task=task)
+        filt = bp.filt.fpath(subject=subj, task=task, session=None)
+        ica_sol = bp.ica_sol.fpath(subject=subj, task=task)
+        ica_bads = bp.ica_bads.fpath(subject=subj, task=task)
+        cleaned_fif = bp.ica.fpath(subject=subj, task=task)
 
         yield dict(
             name=filt.name,
@@ -221,8 +201,8 @@ def task_mark_bad_segments():
     """Manually mark bad segments after ICA"""
     script = "preproc/08-mark_bad_segments.py"
     for subj, task, ses in iter_files(subjects, None):
-        cleaned_fif = bp_ica.fpath(subject=subj, task=task)
-        annot = bp_annot_final.fpath(subject=subj, task=task)
+        cleaned_fif = bp.ica.fpath(subject=subj, task=task)
+        annot = bp.annot_final.fpath(subject=subj, task=task)
         yield dict(
             name=cleaned_fif.name,
             file_dep=[cleaned_fif],
@@ -237,10 +217,10 @@ def task_make_epochs():
     for subj, task, ses in iter_files(subjects, None):
         if task in subj_tasks[subj][1:]:
             continue
-        cleaned_fif = bp_ica.fpath(subject=subj, task=task)
-        annot = bp_annot_final.fpath(subject=subj, task=task)
-        beh = bp_beh.fpath(subject=subj)
-        epochs = bp_epochs.fpath(subject=subj)
+        cleaned_fif = bp.ica.fpath(subject=subj, task=task)
+        annot = bp.annot_final.fpath(subject=subj, task=task)
+        beh = bp.beh.fpath(subject=subj)
+        epochs = bp.epochs.fpath(subject=subj)
         yield dict(
             name=cleaned_fif.name,
             uptodate=[config_changed(epochs_config)],
@@ -254,10 +234,10 @@ def task_make_epochs():
 @disable
 def task_freesurfer():
     for subj in subjects:
-        anat = bp_anat.fpath(subject=subj)
+        anat = bp.anat.fpath(subject=subj)
         yield dict(
             name=f"sub-{subj}",
-            file_dep=[bp_anat],
+            file_dep=[bp.anat],
             actions=[
                 f"recon-all -i {anat} -s sub-{subj} -all -sd"
                 f" {dirs.subjects} -parallel -openmp {fsf_config['openmp']}"
@@ -311,7 +291,7 @@ def task_coregister():
                 prefix / f"sub-{subj}-head-medium.fif",
                 prefix / f"sub-{subj}-head-sparse.fif",
             ],
-            targets=[bp_trans.fpath(subject=subj)],
+            targets=[bp.trans.fpath(subject=subj)],
             actions=[f"python 10-coregister.py {subj}"],
         )
 
@@ -324,14 +304,14 @@ def task_compute_forward():
             name=subj_bids,
             uptodate=[config_changed(fwd_config)],
             file_dep=[
-                bp_trans.fpath(subject=subj),
+                bp.trans.fpath(subject=subj),
                 dirs.subjects / subj_bids / "bem" / f"{subj_bids}-head.fif",
                 dirs.subjects / subj_bids / "bem" / "outer_skin.surf",
                 dirs.subjects / subj_bids / "bem" / "inner_skull.surf",
                 dirs.subjects / subj_bids / "bem" / "outer_skull.surf",
                 dirs.subjects / subj_bids / "bem" / "brain.surf",
             ],
-            targets=[bp_fwd.fpath(subject=subj)],
+            targets=[bp.fwd.fpath(subject=subj)],
             actions=[f"python 11-compute_forward.py {subj}"],
         )
 
@@ -343,14 +323,14 @@ def task_compute_forward():
 #         subj_bids = f"sub-{subj}"
 #         with catch_warnings():
 #             simplefilter("ignore")
-#             json_path = bp_root_json.fpath(subject=subj, task="rest", run=None)
+#             json_path = bp.root_json.fpath(subject=subj, task="rest", run=None)
 #             with open(json_path, "r") as f:
 #                 er_relpath = json.load(f)["AssociatedEmptyRoom"]
 #             er_path = dirs.bids_root / er_relpath
 #         yield dict(
 #             name=subj_bids,
-#             file_dep=[bp_fwd.fpath(subject=subj), er_path],
-#             targets=[bp_inv.fpath(subject=subj)],
+#             file_dep=[bp.fwd.fpath(subject=subj), er_path],
+#             targets=[bp.inv.fpath(subject=subj)],
 #             actions=[f"python {script} {subj}"],
 #         )
 
@@ -360,9 +340,9 @@ def task_compute_sources():
     script = "preproc/13-compute_sources.py"
     for subj in subjects:
         subj_bids = f"sub-{subj}"
-        fwd_path = bp_fwd.fpath(subject=subj)
-        inv_path = bp_inv.fpath(subject=subj)
-        epochs_path = bp_epochs.fpath(subject=subj)
+        fwd_path = bp.fwd.fpath(subject=subj)
+        inv_path = bp.inv.fpath(subject=subj)
+        epochs_path = bp.epochs.fpath(subject=subj)
 
         yield dict(
             name=subj_bids,
@@ -378,8 +358,8 @@ def task_compute_tfr_epochs():
     script = "preproc/15-compute_tfr_epochs.py"
     for subj in subjects:
         subj_bids = f"sub-{subj}"
-        epochs_path = bp_epochs.fpath(subject=subj)
-        tfr_path = bp_tfr.fpath(subject=subj)
+        epochs_path = bp.epochs.fpath(subject=subj)
+        tfr_path = bp.tfr.fpath(subject=subj)
 
         yield dict(
             name=subj_bids,
@@ -396,9 +376,9 @@ def task_average_tfr():
     script = "preproc/16-average_tfr.py"
     for subj in subjects:
         subj_bids = f"sub-{subj}"
-        tfr_path = bp_tfr.fpath(subject=subj)
+        tfr_path = bp.tfr.fpath(subject=subj)
         av_tfr_paths = [
-            bp_tfr_av.fpath(subject=subj, acquisition=b) for b in target_bands
+            bp.tfr_av.fpath(subject=subj, acquisition=b) for b in target_bands
         ]
 
         yield dict(

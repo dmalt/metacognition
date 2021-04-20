@@ -19,6 +19,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import metacog.paths
 
+
 def bids_from_path(path: Path):
     bids_path_kwargs = {}
 

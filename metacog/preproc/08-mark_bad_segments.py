@@ -4,9 +4,9 @@ import sys
 from mne import read_annotations
 from mne.io import read_raw_fif
 
+from metacog import bp
 from metacog.utils import setup_logging
 from metacog.dataset_specific_utils import parse_args
-from metacog.paths import bp_ica, bp_annot_final
 
 logger = setup_logging(__file__)
 
@@ -36,9 +36,9 @@ if __name__ == "__main__":
     subj, task = args.subject, args.task
 
     # input
-    cleaned_fif = bp_ica.fpath(subject=subj, task=task)
+    cleaned_fif = bp.ica.fpath(subject=subj, task=task)
     # output
-    annot = bp_annot_final.fpath(subject=subj, task=task)
+    annot = bp.annot_final.fpath(subject=subj, task=task)
 
     annot.parent.mkdir(exist_ok=True, parents=True)
 

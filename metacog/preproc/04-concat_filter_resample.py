@@ -10,7 +10,7 @@ import warnings
 from mne.io import read_raw_fif
 from mne import concatenate_raws
 
-from metacog.paths import bp_maxfilt, bp_filt
+from metacog import bp
 from metacog.config import concat_config, subj_runs, tasks
 
 from metacog.utils import setup_logging
@@ -46,14 +46,14 @@ if __name__ == "__main__":
     run = 1 if args.task == tasks[0] else None
 
     # input
-    bp_maxfilt_subj = bp_maxfilt.update(subject=subj, task=task, session=ses)
+    bp.maxfilt_subj = bp.maxfilt.update(subject=subj, task=task, session=ses)
     # output
-    filt = bp_filt.fpath(subject=subj, task=task, session=ses)
+    filt = bp.filt.fpath(subject=subj, task=task, session=ses)
 
     if task == "questions":
-        maxfilt = [bp_maxfilt_subj.fpath(run=int(r)) for r in subj_runs[subj]]
+        maxfilt = [bp.maxfilt_subj.fpath(run=int(r)) for r in subj_runs[subj]]
     else:
-        maxfilt = bp_maxfilt_subj.fpath(run=run)
+        maxfilt = bp.maxfilt_subj.fpath(run=run)
 
     filt.parent.mkdir(exist_ok=True, parents=True)
     process_fif(maxfilt, filt, task == "questions")
