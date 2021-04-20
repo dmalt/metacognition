@@ -1,4 +1,4 @@
-from utils import FrozenBIDSPath, BIDSPathTemplate
+from metacog.utils import FrozenBIDSPath, BIDSPathTemplate
 import pytest
 
 
