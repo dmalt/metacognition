@@ -5,20 +5,7 @@ from doit.tools import config_changed
 from mne_bids import make_dataset_description
 
 from metacog import bp
-from metacog.config import (
-    subj_tasks,
-    DATASET_NAME,
-    AUTHORS,
-    subjects,
-    maxfilt_config,
-    concat_config,
-    ica_config,
-    epochs_config,
-    fsf_config,
-    fwd_config,
-    tfr_config,
-    target_bands,
-)
+from metacog.config_parser import cfg
 from metacog.paths import dirs
 from metacog.dataset_specific_utils import iter_files
 from metacog.utils import disable
@@ -43,8 +30,8 @@ def task_make_dataset_description():
                 [],
                 {
                     "path": dirs.bids_root,
-                    "name": DATASET_NAME,
-                    "authors": AUTHORS,
+                    "name": cfg.DATASET_NAME,
+                    "authors": cfg.AUTHORS,
                     "overwrite": True,
                 },
             )
@@ -57,7 +44,7 @@ def task_make_dataset_description():
 def task_add_associated_emptyrooms():
     """Add emptyroom path to sidecar json"""
     script = "preproc/add_associated_emptyroom.py"
-    for subj, task, run, _ in iter_files(subjects):
+    for subj, task, run, _ in iter_files(cfg.subjects):
         raw = bp.root.fpath(subject=subj, task=task, run=run, session=None)
         json_path = bp.root_json.fpath(subject=subj, task=task, run=run)
         yield dict(
@@ -71,7 +58,7 @@ def task_add_associated_emptyrooms():
 def task_compute_head_position():
     """Compute head position for maxfilter"""
     script = "preproc/01-compute_head_pos.py"
-    for subj, task, run, ses in iter_files(subjects):
+    for subj, task, run, ses in iter_files(cfg.subjects):
         raw = bp.root.fpath(subject=subj, task=task, run=run, session=ses)
         hp = bp.headpos.fpath(subject=subj, task=task, run=run)
         yield dict(
@@ -86,7 +73,7 @@ def task_compute_head_position():
 def task_mark_bads_maxfilter():
     """Manually mark bad channels and segments and for maxfilter"""
     script = "preproc/02-mark_bads_maxfilter.py"
-    for subj, task, run, ses in iter_files(["emptyroom"] + subjects):
+    for subj, task, run, ses in iter_files(["emptyroom"] + cfg.subjects):
         raw = bp.root.fpath(subject=subj, task=task, run=run, session=ses)
         bads = bp.bads.fpath(subject=subj, task=task, run=run, session=ses)
         annot = bp.annot.fpath(subject=subj, task=task, run=run, session=ses)
@@ -101,7 +88,7 @@ def task_mark_bads_maxfilter():
 def task_apply_maxfilter():
     """Apply maxfilter to raw data; interpolate bad channels in process"""
     script = "preproc/03-apply_maxfilter.py"
-    for subj, task, run, ses in iter_files(["emptyroom"] + subjects):
+    for subj, task, run, ses in iter_files(["emptyroom"] + cfg.subjects):
         raw = bp.root.fpath(subject=subj, task=task, run=run, session=ses)
         bads = bp.bads.fpath(subject=subj, task=task, run=run, session=ses)
         annot = bp.annot.fpath(subject=subj, task=task, run=run, session=ses)
@@ -111,7 +98,7 @@ def task_apply_maxfilter():
 
         yield dict(
             name=raw.name,
-            uptodate=[config_changed(maxfilt_config)],
+            uptodate=[config_changed(cfg.maxfilt_config)],
             clean=True,
             file_dep=[raw, bads, annot],
             actions=[f"python {script} {subj} {task} -r {run} -s {ses}"],
@@ -122,12 +109,14 @@ def task_apply_maxfilter():
 def task_concat_filter_resample():
     """Concatenate runs, bandpass-filter and downsample data"""
     script = "preproc/04-concat_filter_resample.py"
-    for subj, task, runs, ses in iter_files(["emptyroom"] + subjects, "joint"):
+    for subj, task, runs, ses in iter_files(
+        ["emptyroom"] + cfg.subjects, "joint"
+    ):
 
         bp.maxf_subj = bp.maxfilt.update(subject=subj, task=task, session=ses)
         filt = bp.filt.fpath(subject=subj, task=task, session=ses)
 
-        if task == subj_tasks[subj][0]:
+        if task == cfg.subj_tasks[subj][0]:
             maxfilt = [bp.maxf_subj.fpath(run=r) for r in runs]
         else:
             maxfilt = [bp.maxf_subj.fpath(run=None)]
@@ -135,7 +124,7 @@ def task_concat_filter_resample():
 
         yield dict(
             name=name,
-            uptodate=[config_changed(concat_config)],
+            uptodate=[config_changed(cfg.concat_config)],
             file_dep=maxfilt,
             actions=[f"python {script} {subj} {task} -s {ses}"],
             targets=[filt],
@@ -146,13 +135,13 @@ def task_concat_filter_resample():
 def task_compute_ica():
     """Compute ICA solution for filtered and resampled data. Skip emptyroom."""
     script = "preproc/05-compute_ica.py"
-    for subj, task, _ in iter_files(subjects, None):
+    for subj, task, _ in iter_files(cfg.subjects, None):
         filt = bp.filt.fpath(subject=subj, task=task, session=None)
         ica_sol = bp.ica_sol.fpath(subject=subj, task=task)
 
         yield dict(
             name=filt.name,
-            uptodate=[config_changed(ica_config)],
+            uptodate=[config_changed(cfg.ica_config)],
             file_dep=[filt],
             actions=[f"python {script} {subj} {task}"],
             targets=[ica_sol],
@@ -163,7 +152,7 @@ def task_compute_ica():
 def task_inspect_ica():
     """Remove artifacts with precomputed ICA solution."""
     script = "preproc/06-inspect_ica.py"
-    for subj, task, ses in iter_files(subjects, None):
+    for subj, task, ses in iter_files(cfg.subjects, None):
         filt = bp.filt.fpath(subject=subj, task=task, session=None)
         ica_sol = bp.ica_sol.fpath(subject=subj, task=task)
         ica_bads = bp.ica_bads.fpath(subject=subj, task=task)
@@ -182,7 +171,7 @@ def task_apply_ica():
 
     """
     script = "preproc/07-apply_ica.py"
-    for subj, task, ses in iter_files(subjects, None):
+    for subj, task, ses in iter_files(cfg.subjects, None):
         filt = bp.filt.fpath(subject=subj, task=task, session=None)
         ica_sol = bp.ica_sol.fpath(subject=subj, task=task)
         ica_bads = bp.ica_bads.fpath(subject=subj, task=task)
@@ -200,7 +189,7 @@ def task_apply_ica():
 def task_mark_bad_segments():
     """Manually mark bad segments after ICA"""
     script = "preproc/08-mark_bad_segments.py"
-    for subj, task, ses in iter_files(subjects, None):
+    for subj, task, ses in iter_files(cfg.subjects, None):
         cleaned_fif = bp.ica.fpath(subject=subj, task=task)
         annot = bp.annot_final.fpath(subject=subj, task=task)
         yield dict(
@@ -214,8 +203,8 @@ def task_mark_bad_segments():
 def task_make_epochs():
     """Create epochs ignoring bad segments"""
     script = "preproc/09-make_epochs.py"
-    for subj, task, ses in iter_files(subjects, None):
-        if task in subj_tasks[subj][1:]:
+    for subj, task, ses in iter_files(cfg.subjects, None):
+        if task in cfg.subj_tasks[subj][1:]:
             continue
         cleaned_fif = bp.ica.fpath(subject=subj, task=task)
         annot = bp.annot_final.fpath(subject=subj, task=task)
@@ -223,7 +212,7 @@ def task_make_epochs():
         epochs = bp.epochs.fpath(subject=subj)
         yield dict(
             name=cleaned_fif.name,
-            uptodate=[config_changed(epochs_config)],
+            uptodate=[config_changed(cfg.epochs_config)],
             file_dep=[cleaned_fif, annot, beh],
             actions=[f"python {script} {subj}"],
             targets=[epochs],
@@ -233,57 +222,57 @@ def task_make_epochs():
 
 @disable
 def task_freesurfer():
-    for subj in subjects:
+    for subj in cfg.subjects:
         anat = bp.anat.fpath(subject=subj)
         yield dict(
             name=f"sub-{subj}",
             file_dep=[bp.anat],
             actions=[
                 f"recon-all -i {anat} -s sub-{subj} -all -sd"
-                f" {dirs.subjects} -parallel -openmp {fsf_config['openmp']}"
+                f" {dirs.fsf_subjects} -parallel -openmp {cfg.fsf_config['openmp']}"
             ],
-            targets=[dirs.subjects / f"sub-{subj}"],
+            targets=[dirs.fsf_subjects / f"sub-{subj}"],
             verbosity=2,
         )
 
 
 def task_make_scalp_surfaces():
-    for subj in subjects:
+    for subj in cfg.subjects:
         subj = f"sub-{subj}"
         yield dict(
             name=subj,
             uptodate=[True],
             actions=[
-                f"mne make_scalp_surfaces -o -f -s {subj} -d {dirs.subjects}"
+                f"mne make_scalp_surfaces -o -f -s {subj} -d {dirs.fsf_subjects}"
             ],
             targets=[
-                dirs.subjects / subj / "bem" / f"{subj}-head-dense.fif",
-                dirs.subjects / subj / "bem" / f"{subj}-head-medium.fif",
-                dirs.subjects / subj / "bem" / f"{subj}-head-sparse.fif",
+                dirs.fsf_subjects / subj / "bem" / f"{subj}-head-dense.fif",
+                dirs.fsf_subjects / subj / "bem" / f"{subj}-head-medium.fif",
+                dirs.fsf_subjects / subj / "bem" / f"{subj}-head-sparse.fif",
             ],
         )
 
 
 def task_make_bem_surfaces():
-    for subj in subjects:
+    for subj in cfg.subjects:
         subj = f"sub-{subj}"
         yield dict(
             name=subj,
             uptodate=[True],
-            actions=[f"mne watershed_bem -o -s {subj} -d {dirs.subjects}"],
+            actions=[f"mne watershed_bem -o -s {subj} -d {dirs.fsf_subjects}"],
             targets=[
-                dirs.subjects / subj / "bem" / f"{subj}-head.fif",
-                dirs.subjects / subj / "bem" / "outer_skin.surf",
-                dirs.subjects / subj / "bem" / "inner_skull.surf",
-                dirs.subjects / subj / "bem" / "outer_skull.surf",
-                dirs.subjects / subj / "bem" / "brain.surf",
+                dirs.fsf_subjects / subj / "bem" / f"{subj}-head.fif",
+                dirs.fsf_subjects / subj / "bem" / "outer_skin.surf",
+                dirs.fsf_subjects / subj / "bem" / "inner_skull.surf",
+                dirs.fsf_subjects / subj / "bem" / "outer_skull.surf",
+                dirs.fsf_subjects / subj / "bem" / "brain.surf",
             ],
         )
 
 
 def task_coregister():
-    for subj in subjects:
-        prefix = dirs.subjects / f"sub-{subj}" / "bem"
+    for subj in cfg.subjects:
+        prefix = dirs.fsf_subjects / f"sub-{subj}" / "bem"
         yield dict(
             name=subj,
             file_dep=[
@@ -298,18 +287,21 @@ def task_coregister():
 
 def task_compute_forward():
     """Compute forward solution"""
-    for subj in subjects:
+    for subj in cfg.subjects:
         subj_bids = f"sub-{subj}"
         yield dict(
             name=subj_bids,
-            uptodate=[config_changed(fwd_config)],
+            uptodate=[config_changed(cfg.fwd_config)],
             file_dep=[
                 bp.trans.fpath(subject=subj),
-                dirs.subjects / subj_bids / "bem" / f"{subj_bids}-head.fif",
-                dirs.subjects / subj_bids / "bem" / "outer_skin.surf",
-                dirs.subjects / subj_bids / "bem" / "inner_skull.surf",
-                dirs.subjects / subj_bids / "bem" / "outer_skull.surf",
-                dirs.subjects / subj_bids / "bem" / "brain.surf",
+                dirs.fsf_subjects
+                / subj_bids
+                / "bem"
+                / f"{subj_bids}-head.fif",
+                dirs.fsf_subjects / subj_bids / "bem" / "outer_skin.surf",
+                dirs.fsf_subjects / subj_bids / "bem" / "inner_skull.surf",
+                dirs.fsf_subjects / subj_bids / "bem" / "outer_skull.surf",
+                dirs.fsf_subjects / subj_bids / "bem" / "brain.surf",
             ],
             targets=[bp.fwd.fpath(subject=subj)],
             actions=[f"python 11-compute_forward.py {subj}"],
@@ -319,7 +311,7 @@ def task_compute_forward():
 # def task_compute_inverse():
 #     """Compute inverse solution"""
 #     script = "preproc/12-compute_inverse.py"
-#     for subj in subjects:
+#     for subj in cfg.subjects:
 #         subj_bids = f"sub-{subj}"
 #         with catch_warnings():
 #             simplefilter("ignore")
@@ -338,7 +330,7 @@ def task_compute_forward():
 def task_compute_sources():
     """Project epochs to source space"""
     script = "preproc/13-compute_sources.py"
-    for subj in subjects:
+    for subj in cfg.subjects:
         subj_bids = f"sub-{subj}"
         fwd_path = bp.fwd.fpath(subject=subj)
         inv_path = bp.inv.fpath(subject=subj)
@@ -356,14 +348,14 @@ def task_compute_sources():
 def task_compute_tfr_epochs():
     """Compute time-frequency for epochs"""
     script = "preproc/15-compute_tfr_epochs.py"
-    for subj in subjects:
+    for subj in cfg.subjects:
         subj_bids = f"sub-{subj}"
         epochs_path = bp.epochs.fpath(subject=subj)
         tfr_path = bp.tfr.fpath(subject=subj)
 
         yield dict(
             name=subj_bids,
-            uptodate=[config_changed(tfr_config)],
+            uptodate=[config_changed(cfg.tfr_config)],
             file_dep=[epochs_path],
             targets=[tfr_path],
             actions=[f"python {script} {subj}"],
@@ -374,11 +366,12 @@ def task_compute_tfr_epochs():
 def task_average_tfr():
     """Compute inverse solution"""
     script = "preproc/16-average_tfr.py"
-    for subj in subjects:
+    for subj in cfg.subjects:
         subj_bids = f"sub-{subj}"
         tfr_path = bp.tfr.fpath(subject=subj)
         av_tfr_paths = [
-            bp.tfr_av.fpath(subject=subj, acquisition=b) for b in target_bands
+            bp.tfr_av.fpath(subject=subj, acquisition=b)
+            for b in cfg.target_bands
         ]
 
         yield dict(
@@ -391,7 +384,7 @@ def task_average_tfr():
 
 
 # def task_compute_sources():
-#     for subj_path in sorted(dirs.subjects.glob("sub-*")):
+#     for subj_path in sorted(dirs.fsf_subjects.glob("sub-*")):
 #         subj_id = subj_path.name
 #         yield dict(
 #             name=subj_id,
@@ -399,6 +392,6 @@ def task_average_tfr():
 #                 "compute_sources.py",
 #                 dirs.forwards / f"sub-{subj_id}_spacing-{fwd_config['spacing']}-fwd.fif",
 #             ],
-#             targets=[dirs.subjects / subj_id],
+#             targets=[dirs.fsf_subjects / subj_id],
 #             actions=[f"python compute_sources.py {subj_id}"],
 #         )

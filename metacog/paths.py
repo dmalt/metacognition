@@ -1,7 +1,8 @@
 from pathlib import Path
 from types import SimpleNamespace
 
-from metacog.config import BIDS_ROOT
+from metacog.config_parser import get_config
+BIDS_ROOT = get_config().BIDS_ROOT
 
 
 # ---------------------------- setup directories ---------------------------- #
@@ -24,7 +25,7 @@ dirs.ica_bads     = dirs.derivatives / "06-inspect_ica"             # noqa
 dirs.ica          = dirs.derivatives / "07-apply_ica"               # noqa
 dirs.bad_segments = dirs.derivatives / "08-mark_bad_segments"       # noqa
 dirs.epochs       = dirs.derivatives / "09-make_epochs"             # noqa
-dirs.subjects     = dirs.derivatives / "FSF"                        # noqa
+dirs.fsf_subjects = dirs.derivatives / "FSF"                        # noqa
 dirs.coreg        = dirs.derivatives / "10-coreg"                   # noqa
 dirs.forwards     = dirs.derivatives / "11-forwards"                # noqa
 dirs.inverse      = dirs.derivatives / "12-inverses"                # noqa

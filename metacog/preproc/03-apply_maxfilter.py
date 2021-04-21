@@ -16,7 +16,7 @@ from mne.preprocessing import maxwell_filter
 from mne.channels import fix_mag_coil_types
 
 from metacog import bp
-from metacog.config import maxfilt_config
+from metacog.config_parser import cfg
 from metacog.paths import crosstalk_file, cal_file
 from metacog.utils import setup_logging
 from metacog.dataset_specific_utils import parse_args
@@ -28,7 +28,7 @@ def prepare_raw(raw_path, bads_path, annot_path, is_er):
     """Load raw, filter chpi and line noise, set bads and annotations"""
     raw = read_raw_fif(raw_path, preload=True)
     filter_chpi(
-        raw, allow_line_only=is_er, t_window=maxfilt_config["t_window"]
+        raw, allow_line_only=is_er, t_window=cfg.maxfilt_config["t_window"]
     )
     fix_mag_coil_types(raw.info)
 

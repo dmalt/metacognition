@@ -9,9 +9,9 @@ from mne import (
     write_forward_solution
 )
 
+from metacog.config_parser import cfg
 from metacog import bp
 from metacog.paths import dirs
-from metacog.config import fwd_config
 
 parser = ArgumentParser(description="compute forward modeel")
 parser.add_argument("subject", help="subject id")
@@ -22,16 +22,16 @@ info = read_info(info_path)
 
 src = setup_source_space(
     f"sub-{subj}",
-    spacing=fwd_config["spacing"],
+    spacing=cfg.fwd_config["spacing"],
     add_dist="patch",
-    subjects_dir=dirs.subjects,
+    subjects_dir=dirs.fsf_subjects,
 )
 
 model = make_bem_model(
     subject=f"sub-{subj}",
-    ico=fwd_config["ico"],
-    conductivity=fwd_config["conductivity"],
-    subjects_dir=dirs.subjects,
+    ico=cfg.fwd_config["ico"],
+    conductivity=cfg.fwd_config["conductivity"],
+    subjects_dir=dirs.fsf_subjects,
 )
 bem = make_bem_solution(model)
 fwd = make_forward_solution(
@@ -41,7 +41,7 @@ fwd = make_forward_solution(
     bem=bem,
     meg=True,
     eeg=False,
-    mindist=fwd_config["mindist"],
+    mindist=cfg.fwd_config["mindist"],
     n_jobs=8,
     verbose=True,
 )

@@ -20,7 +20,7 @@ trans_path = trans_path if trans_path.exists() else None
 
 coregistration(
     subject=f"sub-{subj}",
-    subjects_dir=dirs.subjects,
+    subjects_dir=dirs.fsf_subjects,
     inst=info_src,
     trans=trans_path,
 )

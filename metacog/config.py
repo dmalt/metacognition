@@ -1,54 +1,38 @@
-from collections import defaultdict
+from __future__ import annotations
 
 
-BIDS_ROOT = "/home/dmalt/Data/metacog_social/"
+# ----------------------- set these in config_user.py ----------------------- #
+BIDS_ROOT: str      # path to BIDS root folder (the one with subjects` data)
 
-DATASET_NAME = ("metacognition",)
-AUTHORS = (
-    [
-        "Beatriz Martin Luengo",
-        "Maria Alekseeva",
-        "Dmitrii Altukhov",
-        "Yuri Shtyrov",
-    ],
-)
+DATASET_NAME: str   # name of the dataset
+AUTHORS: list[str]  # list of dataset authors
 
-target_bands = {
-    "alpha": (8, 12),
-    "delta": (2, 4),
-    "theta": (4, 8),
-    "beta": (13, 25),
-}
+tasks: list[str]
+subj_tasks: dict[str, list[str]]
 
-tasks = ["go", "CE", "OE"]
-subj_tasks = defaultdict(lambda: tasks)
+all_subjects: list[str]
+bad_subjects: list[str]
+subjects: list[str]
 
-all_subjects = [
-    "01",
-]
+runs: list[str]
+subj_runs: dict[str, list[str]]
 
-bad_subjects = ["02", "20", "07"]
-subjects = [s for s in all_subjects if s not in bad_subjects]
+er_sessions: list[str]
+# --------------------------------------------------------------------------- #
 
-
-runs = ["01", "02", "03"]
-subj_runs = defaultdict(lambda: runs)
-subj_runs["01"] = ["01"]  # first subj has everything in one file
-
-er_sessions = []
 
 # ---------------------------- 03-apply_maxfilter --------------------------- #
-maxfilt_config = {"t_window": "auto"}
+maxfilt_config: dict = {"t_window": "auto"}
 # --------------------------------------------------------------------------- #
 
 # -------- 04-concat_filter_resample -------- #
-concat_config = {
+concat_config: dict = {
     "filter_freqs": (1, 100), "resamp_freq": 500, "pad": "symmetric",
 }
 # ------------------------------------------- #
 
 # -------- 05-compute_ica -------- #
-ica_config = {
+ica_config: dict = {
     "random_state": 28,
     "n_components": 0.99,
     "decim": 5,
@@ -58,7 +42,7 @@ ica_config = {
 # -------------------------------- #
 
 # -------- 09-make_epochs -------- #
-epochs_config = dict(
+epochs_config: dict = dict(
     tmin=-1,
     tmax=1,
     baseline=None,
@@ -67,7 +51,7 @@ epochs_config = dict(
     reject_by_annotation=True,
     on_missing="ignore",
 )
-EVENTS_ID = {
+EVENTS_ID: dict[str, int] = {
     "question/second": 1,
     "question/third": 2,
     "fixcross": 3,
@@ -77,11 +61,11 @@ EVENTS_ID = {
 # -------------------------------- #
 
 # -------- FSF -------- #
-fsf_config = {"openmp": 8}
+fsf_config: dict = {"openmp": 8}
 # --------------------- #
 
 # -------- 11-compute_forward -------- #
-fwd_config = {
+fwd_config: dict = {
     "mindist": 5.0,
     "ico": 4,
     "conductivity": (0.3,),
@@ -90,16 +74,25 @@ fwd_config = {
 # ------------------------------------ #
 
 # -------- 13-compute_sources -------- #
-config_sources = dict(
+config_sources: dict = dict(
     baseline_win=[-1, -0.25],
     active_win=[0.25, 1],
 )
 # ------------------------------------ #
 
 # -------- 15-compute_tfr_epochs -------- #
-tfr_config = dict(
+tfr_config: dict = dict(
     freqs=dict(start=1.0, stop=30., step=1.),
     decim=4,
     use_fft=True,
 )
+# -------------------------------------- #
+
+# ----------- 16-average_tfr ----------- #
+target_bands: dict[str, tuple[float, float]] = {
+    "alpha": (8., 12.),
+    "delta": (2., 4.),
+    "theta": (4., 8.),
+    "beta": (13., 25.),
+}
 # -------------------------------------- #

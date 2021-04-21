@@ -6,7 +6,7 @@ from mne import read_epochs
 from mne.time_frequency import tfr_morlet
 
 from metacog import bp
-from metacog.config import tfr_config
+from metacog.config_parser import cfg
 from metacog.utils import setup_logging
 
 logger = setup_logging(__file__)
@@ -26,7 +26,7 @@ tfr_path = bp.tfr.fpath(subject=subj)
 
 ep = read_epochs(ep_path)
 
-freqs = np.arange(**tfr_config["freqs"])
+freqs = np.arange(**cfg.tfr_config["freqs"])
 n_cycles = freqs / 2.0
 ep_tfr = tfr_morlet(
     ep["answer"],
@@ -34,8 +34,8 @@ ep_tfr = tfr_morlet(
     return_itc=False,
     freqs=freqs,
     n_cycles=n_cycles,
-    decim=tfr_config["decim"],
-    use_fft=tfr_config["use_fft"],
+    decim=cfg.tfr_config["decim"],
+    use_fft=cfg.tfr_config["use_fft"],
 )
 
 # ep_tfr_high, ep_itc_high = tfr_morlet(
@@ -44,8 +44,8 @@ ep_tfr = tfr_morlet(
 #     return_itc=True,
 #     freqs=freqs,
 #     n_cycles=n_cycles,
-#     decim=tfr_config["decim"],
-#     use_fft=tfr_config["use_fft"],
+#     decim=cfg.tfr_config["decim"],
+#     use_fft=cfg.tfr_config["use_fft"],
 # )
 tfr_path.parent.mkdir(exist_ok=True, parents=True)
 ep_tfr.save(tfr_path, overwrite=True)

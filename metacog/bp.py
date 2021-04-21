@@ -1,6 +1,6 @@
 from metacog.paths import dirs
 from metacog.utils import BIDSPathTemplate
-from metacog.config import fwd_config, tasks
+from metacog.config_parser import cfg
 
 
 root = BIDSPathTemplate(
@@ -71,11 +71,11 @@ annot_final = BIDSPathTemplate(
 
 # ------------------------------ 09-make_epochs ----------------------------- #
 epochs = BIDSPathTemplate(
-    root=dirs.epochs, processing="ica", task=tasks[0], suffix="epo", extension="fif", # noqa
+    root=dirs.epochs, processing="ica", task=cfg.tasks[0], suffix="epo", extension="fif", # noqa
     template_vars=["subject"],
 )
 beh = BIDSPathTemplate(
-    root=dirs.bids_root, datatype="beh", task=tasks[0], suffix="behav", extension="tsv", # noqa
+    root=dirs.bids_root, datatype="beh", task=cfg.tasks[0], suffix="behav", extension="tsv", # noqa
     template_vars=["subject"]
 )
 # --------------------------------------------------------------------------- #
@@ -96,14 +96,14 @@ trans = BIDSPathTemplate(
 
 # --------------------------- 11-compute_forward ---------------------------- #
 fwd = BIDSPathTemplate(
-    root=dirs.forwards, acquisition=fwd_config["spacing"], suffix="fwd", extension="fif", # noqa
+    root=dirs.forwards, acquisition=cfg.fwd_config["spacing"], suffix="fwd", extension="fif", # noqa
     template_vars=["subject"]
 )
 # --------------------------------------------------------------------------- #
 
 # ---------------------------- 12-compute_inverse --------------------------- #
 inv = BIDSPathTemplate(
-    root=dirs.inverse, suffix="inv", acquisition=fwd_config["spacing"], extension="fif", # noqa
+    root=dirs.inverse, suffix="inv", acquisition=cfg.fwd_config["spacing"], extension="fif", # noqa
     template_vars=["subject"],
 )
 

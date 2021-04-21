@@ -7,13 +7,7 @@ from tqdm import tqdm
 import pandas as pd
 
 from metacog import bp
-from metacog.config import (
-    subjects,
-    er_sessions,
-    subj_tasks,
-    subj_runs,
-    EVENTS_ID,
-)
+from metacog.config_parser import cfg
 
 
 location = "./cachedir"
@@ -38,22 +32,27 @@ def iter_files(subjects, runs_return="sep"):
     (subj, task, ses) tuple if runs_renturn == None
 
     """
-    for subj in subjects:
+    for subj in cfg.subjects:
         if subj == "emptyroom":
             task = "noise"
-            for ses in er_sessions:
+            for ses in cfg.er_sessions:
                 if runs_return is not None:
                     yield (subj, task, None, ses)
                 else:
                     yield (subj, task, ses)
         else:
-            for task in subj_tasks[subj]:
-                if task == subj_tasks[subj][0]:
+            for task in cfg.subj_tasks[subj]:
+                if task == cfg.subj_tasks[subj][0]:
                     if runs_return == "sep":
-                        for run in subj_runs[subj]:
+                        for run in cfg.subj_runs[subj]:
                             yield (subj, task, run, None)
                     elif runs_return == "joint":
-                        yield (subj, task, [r for r in subj_runs[subj]], None)
+                        yield (
+                            subj,
+                            task,
+                            [r for r in cfg.subj_runs[subj]],
+                            None,
+                        )
                     else:
                         yield (subj, task, None)
                 else:
@@ -65,16 +64,19 @@ def iter_files(subjects, runs_return="sep"):
 
 def parse_args(description, args, emptyroom=False):
     parser = ArgumentParser(description=description)
-    tasks_cat = {t for s in subjects for t in subj_tasks[s]}
-    runs_cat = {t for s in subjects for t in subj_runs[s]}
+    tasks_cat = {t for s in cfg.subjects for t in cfg.subj_tasks[s]}
+    runs_cat = {t for s in cfg.subjects for t in cfg.subj_runs[s]}
     if emptyroom:
-        subjects.append("emptyroom")
+        cfg.subjects.append("emptyroom")
         tasks_cat.add("noise")
         parser.add_argument(
-            "--session", "-s", default="None", choices=er_sessions + ["None"]
+            "--session",
+            "-s",
+            default="None",
+            choices=cfg.er_sessions + ["None"],
         )
 
-    parser.add_argument("subject", choices=subjects)
+    parser.add_argument("subject", choices=cfg.subjects)
     parser.add_argument("task", choices=tasks_cat)
     parser.add_argument(
         "--run", "-r", choices=runs_cat | {"None"}, default="None"
@@ -86,7 +88,7 @@ def parse_args(description, args, emptyroom=False):
             args.session = None
         if args.subject == "emptyroom":
             assert args.task == "noise"
-            assert args.session in er_sessions
+            assert args.session in cfg.er_sessions
         else:
             assert args.task != "noise"
             assert args.session is None
@@ -109,7 +111,7 @@ def assemble_epochs(ep_type="answer", average=False):
     n_times = 1001
     X = np.empty((0, n_channels, n_times))
     y = np.empty(0)
-    for subj in tqdm(subjects, desc="Loading epochs"):
+    for subj in tqdm(cfg.subjects, desc="Loading epochs"):
         ep_path = bp.epochs.fpath(subject=subj)
         ep = (
             read_epochs(ep_path)
@@ -163,16 +165,18 @@ def get_events_metadata(events, beh_df):
     the same metadata to events within one question. Therefore we pick the next
     question only when the new event is of "confidence" type
     """
-    assert len(events[events[:, 2] == EVENTS_ID["answer"]]) == len(beh_df)
-    assert len(events[events[:, 2] == EVENTS_ID["fixcross"]]) == len(beh_df)
+    assert len(events[events[:, 2] == cfg.EVENTS_ID["answer"]]) == len(beh_df)
+    assert len(events[events[:, 2] == cfg.EVENTS_ID["fixcross"]]) == len(
+        beh_df
+    )
     i_question = 0
     beh_data = {"confidence": [], "is_correct": [], "question_num": []}
     for i, ev in enumerate(events):
-        if i_question == 0 or ev[2] == EVENTS_ID["question/second"]:
+        if i_question == 0 or ev[2] == cfg.EVENTS_ID["question/second"]:
             confidence, is_correct, question_num = get_question_data(
                 i_question, beh_df
             )
-        if ev[2] == EVENTS_ID["confidence"]:
+        if ev[2] == cfg.EVENTS_ID["confidence"]:
             i_question += 1
         beh_data["confidence"].append(confidence)
         beh_data["is_correct"].append(is_correct)

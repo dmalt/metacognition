@@ -5,15 +5,15 @@ from mne.stats import (
 )
 
 from metacog.paths import dirs
-from metacog.config import subjects
+from metacog.config_parser import cfg
 
 # stcs_low = []
 # stcs_high = []
-src_path = dirs.subjects / "fsaverage/bem/fsaverage-oct-6-src.fif"
+src_path = dirs.fsf_subjects / "fsaverage/bem/fsaverage-oct-6-src.fif"
 src = read_source_spaces(src_path)
 
 is_first_iter = True
-subj_paths = [dirs.sources / f"sub-{s}" for s in subjects]
+subj_paths = [dirs.sources / f"sub-{s}" for s in cfg.subjects]
 # subj_paths = sorted(dirs.sources.iterdir())
 n_subjects = len(subj_paths)
 stcs = []
@@ -62,7 +62,7 @@ stc_all_cluster_vis = summarize_clusters_stc(
 )
 stc_all_cluster_vis
 
-stc_all_cluster_vis.plot(subjects_dir=dirs.subjects, hemi="both")
+stc_all_cluster_vis.plot(subjects_dir=dirs.fsf_subjects, hemi="both")
 
 # good_ids = np.where(cluster_pv < thresh_pv)[0]
 
