@@ -50,6 +50,27 @@ python -c "import mne; mne.sys_info()"
 This should display some system information along with the versions of MNE-Python and its dependencies.
 
 
+Doit
+====
+
+**Useful commands**
+
+```bash
+doit reset-dep
+```
+https://pydoit.org/cmd_other.html#reset-dep
+
+
+```bash
+doit forget
+```
+
+
+```
+doit clean
+```
+
+
 Dataset structure
 =================
 ```
