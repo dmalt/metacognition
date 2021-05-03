@@ -4,13 +4,6 @@ from mne.io import read_info
 from mne import EpochsArray, pick_types, EvokedArray
 from mne.stats import spatio_temporal_cluster_test
 from mne.channels import find_ch_adjacency
-from dataset_specific_utils import (
-    assemble_epochs,
-    LOW_CONF_EPOCH,
-    HIGH_CONF_EPOCH,
-)
-from config import bp_epochs
-
 from mne.viz.topomap import (
     plot_psds_topomap,
     _prepare_topomap_plot,
@@ -19,16 +12,18 @@ from mne.viz.topomap import (
 from mne.channels.channels import _get_ch_type
 from mne.defaults import _handle_default
 from mne.channels.layout import _merge_ch_data
-
 from mne.time_frequency import psd_multitaper
-
 from mne.viz import plot_compare_evokeds, tight_layout
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+from metacog import bp
+from dataset_specific_utils import (
+    assemble_epochs, LOW_CONF_EPOCH, HIGH_CONF_EPOCH
+)
 
 X, y = assemble_epochs("answer")  # dict with subj -> epochs mapping
 
-info_src = bp_epochs.fpath(subject="01")
+info_src = bp.epochs.fpath(subject="01")
 info = read_info(info_src)
 sel_idx = pick_types(info, meg="grad")
 info.pick_channels([info.ch_names[s] for s in sel_idx])

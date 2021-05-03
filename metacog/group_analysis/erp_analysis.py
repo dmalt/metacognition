@@ -6,9 +6,9 @@ from mne import set_log_level
 from mne.stats import spatio_temporal_cluster_test
 from mne.channels import find_ch_adjacency
 
-from paths import bp_epochs
-from utils import plot_temporal_clusters
-from dataset_specific_utils import (
+from metacog import bp
+from metacog.utils import plot_temporal_clusters
+from metacog.dataset_specific_utils import (
     assemble_epochs,
     LOW_CONF_EPOCH,
     HIGH_CONF_EPOCH,
@@ -21,7 +21,7 @@ set_log_level(verbose="ERROR")
 # load the data
 X, y = assemble_epochs("answer")  # dict with subj -> epochs mapping
 
-info_src = bp_epochs.fpath(subject="01")
+info_src = bp.epochs.fpath(subject="01")
 info = read_info(info_src)
 sel_idx = pick_types(info, meg="grad")
 info.pick_channels([info.ch_names[s] for s in sel_idx])

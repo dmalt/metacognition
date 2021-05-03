@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 
 # Fixing random state for reproducibility
 
-from config import subjects, bp_epochs
+from metacog.config_parser import cfg
+from metacog import bp
 
 
 def print_epoch_stats(ep_counts):
@@ -45,8 +46,8 @@ def plot_hists(ep_counts, n_bins=10):
 
 def read_stats(epoch_type="answer"):
     ep_counts = OrderedDict()
-    for subj in subjects:
-        ep_path = bp_epochs.fpath(subject=subj)
+    for subj in cfg.subjects:
+        ep_path = bp.epochs.fpath(subject=subj)
         ep = read_epochs(str(ep_path), preload=False, verbose="ERROR")
 
         ep_counts[subj] = dict(

@@ -5,7 +5,8 @@ import statsmodels.formula.api as smf
 from joblib import Memory
 
 from mne.time_frequency import read_tfrs
-from config import bp_tfr_av, subjects
+from metacog import bp
+from metacog.config_parser import cfg
 
 location = "./cachedir"
 memory = Memory(location, verbose=0)
@@ -16,8 +17,8 @@ def load_data(band):
     band = "beta"
     dfs = []
     data = []
-    for subj in subjects:
-        tfr_path = bp_tfr_av.fpath(subject=subj, acquisition=band)
+    for subj in cfg.subjects:
+        tfr_path = bp.tfr_av.fpath(subject=subj, acquisition=band)
         tfr = read_tfrs(tfr_path)[0]["confidence < 100 and confidence > 0"]
         df = tfr.metadata.copy()
         data.append(tfr.pick_types(meg="grad").data[:, :, 0, :])
