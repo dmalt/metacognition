@@ -9,7 +9,7 @@ from mne.io import read_raw_fif
 from mne import Report
 
 from metacog import bp
-from metacog.config import ica_config
+from metacog.config_parser import cfg
 from metacog.utils import setup_logging
 from metacog.dataset_specific_utils import parse_args
 
@@ -28,16 +28,16 @@ def generate_report(raw, ica, report_savepath):
 def compute_ica(fif_path, ica_sol_path, task):
     raw = read_raw_fif(fif_path, preload=True)
     ica = ICA(
-        ica_config["n_components"],
-        random_state=ica_config["random_state"],
-        max_iter=ica_config["max_iter"],
+        cfg.ica_config["n_components"],
+        random_state=cfg.ica_config["random_state"],
+        max_iter=cfg.ica_config["max_iter"],
     )
-    decim = None if task in ("rest", "practice") else ica_config["decim"]
+    decim = None if task in ("rest", "practice") else cfg.ica_config["decim"]
     ica.fit(
         raw,
         picks="data",
         decim=decim,
-        reject_by_annotation=ica_config["annot_rej"],
+        reject_by_annotation=cfg.ica_config["annot_rej"],
     )
     ica.save(ica_sol_path)
 
