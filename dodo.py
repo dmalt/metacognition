@@ -43,7 +43,7 @@ def task_make_dataset_description():
 @disable
 def task_add_associated_emptyrooms():
     """Add emptyroom path to sidecar json"""
-    script = "preproc/add_associated_emptyroom.py"
+    script = "prepare/add_associated_emptyroom.py"
     for subj, task, run, _ in iter_files(cfg.subjects):
         raw = bp.root.fpath(subject=subj, task=task, run=run, session=None)
         json_path = bp.root_json.fpath(subject=subj, task=task, run=run)
