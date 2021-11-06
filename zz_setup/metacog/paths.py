@@ -11,8 +11,8 @@ dirs = SimpleNamespace()
 dirs.current = Path(__file__).resolve().parent
 dirs.bids_root = Path(BIDS_ROOT)
 
-dirs.raw          = dirs.bids_root.parent / "raw"                   # noqa
-dirs.beh_raw      = dirs.raw / "behavioral_data"                    # noqa
+dirs.sourcedata   = dirs.bids_root.parent / "sourcedata"            # noqa
+dirs.beh_source   = dirs.sourcedata / "behavioral_data"             # noqa
 dirs.logs         = dirs.current / "logs"                           # noqa
 
 dirs.derivatives  = dirs.bids_root   / "derivatives"                # noqa
@@ -39,8 +39,8 @@ for k, d in vars(dirs).items():
     if k not in ("raw", "beh_raw", "bids_root"):
         d.mkdir(exist_ok=True, parents=True)
 
-crosstalk_file = str(dirs.bids_root / "SSS_data" / "ct_sparse.fif")
-cal_file = str(dirs.bids_root / "SSS_data" / "sss_cal.dat")
+crosstalk = str(dirs.sourcedata / "SSS_data" / "ct_sparse.fif")
+calibration = str(dirs.sourcedata / "SSS_data" / "sss_cal.dat")
 # --------------------------------------------------------------------------- #
 
 

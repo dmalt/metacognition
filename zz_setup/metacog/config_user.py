@@ -3,7 +3,7 @@ from collections import defaultdict
 
 BIDS_ROOT = "/home/dmalt/Data/metacognition/MEG1/rawdata"
 
-DATASET_NAME = "metacognition"
+DATASET_NAME = "meg1"
 AUTHORS = (
     [
         "Beatriz Martin Luengo",

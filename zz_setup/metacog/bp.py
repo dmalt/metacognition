@@ -7,6 +7,7 @@ root = BIDSPathTemplate(
     root=dirs.bids_root, datatype="meg", suffix="meg", extension=".fif",
     template_vars=["subject", "task", "run", "session"],
 )
+
 # only need this to get emptyroom, so no session template
 root_json = BIDSPathTemplate(
     root=dirs.bids_root, datatype="meg", suffix="meg", extension=".json",
