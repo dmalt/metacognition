@@ -7,3 +7,4 @@ cachedir
 *.egg-info
 *.npz
 *.pkl
+*.npy
