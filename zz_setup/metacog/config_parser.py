@@ -2,11 +2,11 @@ from types import SimpleNamespace
 
 
 def get_config():
-    from metacog import config
+    from meg1 import config
     res_config = SimpleNamespace()
     res_config.__annotations__ = config.__annotations__
     try:
-        from metacog import config_user
+        from meg1 import config_user
     except ImportError:
         raise ImportError("Please create config_user.py")
     for key in config.__annotations__:

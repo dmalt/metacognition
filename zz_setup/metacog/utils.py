@@ -17,7 +17,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-import metacog.paths
+from metacog import paths
 
 
 def bids_from_path(path: Path):
@@ -111,7 +111,7 @@ def setup_logging(script_name):
     """Save mne-python log to a file in logs folder"""
     log_basename = Path(script_name).stem
     log_fname = log_basename + ".log"
-    log_savepath = (metacog.paths.dirs.logs) / log_fname
+    log_savepath = (paths.dirs.logs) / log_fname
 
     logger = getLogger(log_basename)
     logger.setLevel(logging.INFO)
@@ -286,7 +286,7 @@ def plot_temporal_clusters(
     good_cluster_inds, evokeds, T_obs, clusters, times, info
 ):
     colors = {"low": "crimson", "high": "steelblue"}
-    linestyles = {"low": "-", "high": "--"}
+    # linestyles = {"low": "-", "high": "--"}
     #
     # loop over clusters
     for i_clu, clu_idx in enumerate(good_cluster_inds):
@@ -320,6 +320,8 @@ def plot_temporal_clusters(
             show=False,
             colorbar=False,
             mask_params=dict(markersize=10),
+            scalings=dict(eeg=1, mag=1, grad=1),
+            res=240,
         )
         image = ax_topo.images[0]
 
@@ -344,7 +346,7 @@ def plot_temporal_clusters(
             picks=ch_inds,
             axes=ax_signals,
             colors=colors,
-            linestyles=linestyles,
+            # linestyles=linestyles,
             show=False,
             split_legend=True,
             truncate_yaxis="auto",

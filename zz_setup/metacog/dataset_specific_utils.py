@@ -105,9 +105,14 @@ HIGH_CONF_EPOCH = 44
 
 
 @memory.cache
-def assemble_epochs(ep_type="answer", average=False):
+def assemble_epochs(ep_type="answer", average=False, ch_type="grad"):
     """Read in epochs"""
-    n_channels = 204
+    if ch_type == "grad":
+        n_channels = 204
+    elif ch_type == "mag":
+        n_channels = 102
+    else:
+        raise AttributeError
     n_times = 1001
     X = np.empty((0, n_channels, n_times))
     y = np.empty(0)
@@ -116,8 +121,9 @@ def assemble_epochs(ep_type="answer", average=False):
         ep = (
             read_epochs(ep_path)
             .interpolate_bads()
-            .pick_types(meg="grad")[ep_type]
+            .pick_types(meg=ch_type)[ep_type]
         )
+        ep.apply_baseline()
 
         # required to merge epochs from differen subjects together
         ep.info["dev_head_t"] = None
@@ -136,6 +142,26 @@ def assemble_epochs(ep_type="answer", average=False):
         X = np.r_[X, X_low, X_high]
         y = np.r_[y, y_low, y_high]
     return X, y
+
+
+@memory.cache
+def assemble_epochs_new(
+    kind="answer", average=False, baseline=(-0.2, 0), ch_type="grad"
+):
+    """Read in epochs"""
+    X, dfs = [], []
+    for subj in tqdm(cfg.subjects, desc="Loading epochs"):
+        fp = bp.epochs.fpath(subject=subj)
+        ep = read_epochs(fp).interpolate_bads().pick_types(meg=ch_type)[kind]
+        ep.apply_baseline(baseline=baseline)
+        metadata = ep.metadata
+        metadata["subject"] = subj
+        dfs.append(metadata)
+        X.append(ep.get_data())
+
+    metadata = pd.concat(dfs)
+    X = np.concatenate(X)
+    return X, metadata, ep.times, ep.info
 
 
 def get_question_data(i_question, df):

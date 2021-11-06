@@ -12,7 +12,6 @@ from mne import concatenate_raws
 
 from metacog import bp
 from metacog.config_parser import cfg
-
 from metacog.utils import setup_logging
 from metacog.dataset_specific_utils import parse_args
 

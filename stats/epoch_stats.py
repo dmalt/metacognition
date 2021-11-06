@@ -3,9 +3,9 @@ from collections import OrderedDict
 
 import numpy as np
 from mne import read_epochs
+import matplotlib
 import matplotlib.pyplot as plt
-
-# Fixing random state for reproducibility
+import pandas as pd
 
 from metacog.config_parser import cfg
 from metacog import bp
@@ -21,13 +21,16 @@ def print_epoch_stats(ep_counts):
         mean_low += n_low
         print(
             "sub-{subj}: high={high}, low={low}".format(
-                subj=subj, high=n_high, low=n_low,
+                subj=subj,
+                high=n_high,
+                low=n_low,
             )
         )
     mean_high /= len(ep_counts)
     mean_low /= len(ep_counts)
     print("------------------------")
     print("mean:", f"high={round(mean_high, 1)}", f"low={round(mean_low, 1)}")
+    print("min:" f"high={min(ep_counts)}")
 
 
 def plot_hists(ep_counts, n_bins=10):
@@ -38,7 +41,9 @@ def plot_hists(ep_counts, n_bins=10):
 
     # We can set the number of bins with the `bins` kwarg
     axs[0].hist(high, bins=n_bins, label="high")
-    axs[0].set_title("high",)
+    axs[0].set_title(
+        "high",
+    )
     axs[1].hist(low, bins=n_bins, label="low")
     axs[1].set_title("low")
     plt.show()
@@ -58,5 +63,16 @@ def read_stats(epoch_type="answer"):
 
 
 ep_counts = read_stats()
-print_epoch_stats(ep_counts)
-plot_hists(ep_counts, n_bins=15)
+counts_df = pd.DataFrame(ep_counts).T
+font = {"family": "normal", "weight": "bold", "size": 24}
+
+matplotlib.rc("font", **font)
+counts_df.plot(
+    kind="bar",
+    stacked=True,
+    xlabel="Subject ID",
+    ylabel="Epochs number",
+    figsize=(40, 8),
+)
+plt.show()
+# plot_hists(ep_counts, n_bins=15)

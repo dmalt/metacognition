@@ -20,7 +20,9 @@ Note that environment name (`--name metacog` argument) can be changed to your li
 ```bash
 git clone https://github.com/dmalt/metacognition.git
 cd metacognition
-conda env create --name metacog -f environment.yml
+cd setup
+conda env create -n meg1 -f environment.yml
+pip install -e .
 ```
 
 

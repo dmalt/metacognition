@@ -5,3 +5,5 @@ pics
 .doit.db*
 cachedir
 *.egg-info
+*.npz
+*.pkl

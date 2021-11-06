@@ -1,4 +1,12 @@
-"""Permutation cluster 1-samp t-test for average ERPs"""
+"""
+Permutation cluster 1-samp t-test for average ERPs
+
+Compute evoked response for each subject and do the cluster stats.
+No significance here
+
+For magnetometers there's marginaly significant cluster (p=0.09) at the same
+space-time points as for no-repeated-measures-correction test
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 from mne import EpochsArray, combine_evoked, pick_types, EvokedArray
@@ -10,8 +18,8 @@ from mne.stats import spatio_temporal_cluster_1samp_test
 from mne.channels import find_ch_adjacency
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-from code.config import bp_epochs
-from code.dataset_specific_utils import (
+from metacog import bp
+from metacog.dataset_specific_utils import (
     assemble_epochs,
     LOW_CONF_EPOCH,
     HIGH_CONF_EPOCH,
@@ -20,34 +28,36 @@ from code.dataset_specific_utils import (
 
 # set_log_level(verbose="ERROR")
 
-
+ch_type = "mag"
 # load the data
-X, y = assemble_epochs("answer", True)  # dict with subj -> epochs mapping
+X, y = assemble_epochs("answer", True, ch_type=ch_type)
 
-info_src = bp_epochs.fpath(subject="01")
+info_src = bp.epochs.fpath(subject="01")
 info = read_info(info_src)
-sel_idx = pick_types(info, meg="grad")
+sel_idx = pick_types(info, meg=ch_type)
 info.pick_channels([info.ch_names[s] for s in sel_idx])
 
 erf_low = EpochsArray(X[y == LOW_CONF_EPOCH, ...], info, tmin=-1).average()
 erf_high = EpochsArray(X[y == HIGH_CONF_EPOCH, ...], info, tmin=-1).average()
 erf_diff = combine_evoked([erf_low, -erf_high], weights="equal")
 
-adjacency, ch_names = find_ch_adjacency(info, ch_type="grad")
+adjacency, ch_names = find_ch_adjacency(info, ch_type=ch_type)
 # set cluster threshold
 # threshold = 1.0
 # set family-wise p-value
-p_accept = 0.05
+# p_accept = 0.05
+p_accept = 0.14
 
 X_low = X[y == LOW_CONF_EPOCH, ...].transpose(0, 2, 1)
 X_high = X[y == HIGH_CONF_EPOCH, ...].transpose(0, 2, 1)
 X_diff = X_high - X_low
+
 cluster_stats = spatio_temporal_cluster_1samp_test(
     X_diff,
     n_permutations=100,
     # threshold=threshold,
     # tail=1,
-    n_jobs=8,
+    n_jobs=1,
     # buffer_size=None,
     adjacency=adjacency,
 )
@@ -86,7 +96,7 @@ for i_clu, clu_idx in enumerate(good_cluster_inds):
     # plot average test statistic and mark significant sensors
     f_evoked = EvokedArray(f_map[:, np.newaxis], info, tmin=0)
     f_evoked.plot_topomap(times=0, mask=mask, axes=ax_topo,
-                          vmin=np.min, vmax=np.max, ch_type="planar1",
+                          vmin=np.min, vmax=np.max, ch_type="mag",
                           show=False,
                           colorbar=False, mask_params=dict(markersize=10))
     image = ax_topo.images[0]

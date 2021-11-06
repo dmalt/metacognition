@@ -1,9 +1,14 @@
+"""PSD analysis on single trial, no repeated measures control
+
+Some kinda strange significant clusters in low and high beta
+"""
 import numpy as np
 import matplotlib.pyplot as plt
 from mne.io import read_info
 from mne import EpochsArray, pick_types, EvokedArray
 from mne.stats import spatio_temporal_cluster_test
 from mne.channels import find_ch_adjacency
+
 from mne.viz.topomap import (
     plot_psds_topomap,
     _prepare_topomap_plot,
@@ -12,28 +17,35 @@ from mne.viz.topomap import (
 from mne.channels.channels import _get_ch_type
 from mne.defaults import _handle_default
 from mne.channels.layout import _merge_ch_data
-from mne.time_frequency import psd_multitaper
+
+from mne.time_frequency import psd_multitaper, psd_welch
+
 from mne.viz import plot_compare_evokeds, tight_layout
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 from metacog import bp
-from dataset_specific_utils import (
-    assemble_epochs, LOW_CONF_EPOCH, HIGH_CONF_EPOCH
+from metacog.dataset_specific_utils import (
+    assemble_epochs,
+    LOW_CONF_EPOCH,
+    HIGH_CONF_EPOCH,
 )
 
-X, y = assemble_epochs("answer")  # dict with subj -> epochs mapping
+ch_type = "grad"
+X, y = assemble_epochs("answer", ch_type=ch_type)  # dict with subj -> epochs mapping
 
 info_src = bp.epochs.fpath(subject="01")
 info = read_info(info_src)
-sel_idx = pick_types(info, meg="grad")
+sel_idx = pick_types(info, meg=ch_type)
 info.pick_channels([info.ch_names[s] for s in sel_idx])
 
 # create epochs objects
 ep_low = EpochsArray(X[y == LOW_CONF_EPOCH, ...], info, tmin=-1)
 ep_high = EpochsArray(X[y == HIGH_CONF_EPOCH, ...], info, tmin=-1)
 
-psds_high, freqs = psd_multitaper(ep_high, tmin=0, tmax=1, fmax=50)
-psds_low, freqs = psd_multitaper(ep_low, tmin=0, tmax=1, fmax=50)
+# psds_high, freqs = psd_multitaper(ep_high, tmin=0, tmax=1, fmax=50)
+# psds_low, freqs = psd_multitaper(ep_low, tmin=0, tmax=1, fmax=50)
+psds_high, freqs = psd_welch(ep_high, tmin=0.3, tmax=0.9, fmax=50)
+psds_low, freqs = psd_welch(ep_low, tmin=0.3, tmax=0.9, fmax=50)
 
 # normalize
 # psds_high /= psds_high.mean(axis=2, keepdims=True)
@@ -57,6 +69,8 @@ outlines = _make_head_outlines(sphere, pos, "head", clip_origin)
 
 if merge_channels:
     psds_merge, names = _merge_ch_data(psds, ch_type, names, method="mean")
+else:
+    psds_merge = psds
 
 fig = plot_psds_topomap(
     psds_merge,
@@ -77,9 +91,9 @@ fig = plot_psds_topomap(
 fig.set_size_inches((20, 10))
 plt.show()
 
-adjacency, ch_names = find_ch_adjacency(info, ch_type="grad")
+adjacency, ch_names = find_ch_adjacency(info, ch_type=ch_type)
 # set cluster threshold
-threshold = 15.0  # very high, but the test is quite sensitive on this data
+threshold = 6.0  # very high, but the test is quite sensitive on this data
 # set family-wise p-value
 p_accept = 0.05
 

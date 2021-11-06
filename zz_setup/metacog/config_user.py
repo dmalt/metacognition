@@ -1,7 +1,7 @@
 from collections import defaultdict
 
 
-BIDS_ROOT = "/home/dmalt/Data/metacognition/meta_bids/meta_bids"
+BIDS_ROOT = "/home/dmalt/Data/metacognition/MEG1/rawdata"
 
 DATASET_NAME = "metacognition"
 AUTHORS = (
