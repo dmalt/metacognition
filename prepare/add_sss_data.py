@@ -1,4 +1,4 @@
-"""Add calibration and crosstalk files to data repository"""
+"""Add calibration and crosstalk files to BIDS data"""
 from tqdm import tqdm
 from mne_bids import write_meg_calibration, write_meg_crosstalk, BIDSPath
 from metacog.config_parser import cfg
